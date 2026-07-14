@@ -108,6 +108,58 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
     setServicios(initialServicios);
   }, [initialServicios]);
 
+  // Estado para la franja horaria actual (franja amarilla y línea roja móvil)
+  const [currentBlock, setCurrentBlock] = useState<{ left: string; width: string } | null>(null);
+
+  useEffect(() => {
+    const updateCurrentBlock = () => {
+      const now = new Date();
+      
+      // Comprobar si el día de hoy está en el rango visible
+      const todayStr = formatDateLocal(now);
+      const isTodayVisible = days.some(d => formatDateLocal(d) === todayStr);
+      
+      if (!isTodayVisible) {
+        setCurrentBlock(null);
+        return;
+      }
+      
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      
+      // Rango de la jornada: 08:00 a 21:00 (13 horas)
+      if (hours < 8 || hours >= 21) {
+        setCurrentBlock(null);
+        return;
+      }
+      
+      // Determinar en qué bloque de 30 minutos cae
+      const startMin = minutes < 30 ? '00' : '30';
+      const endMin = minutes < 30 ? '30' : '00';
+      
+      const startHour = String(hours).padStart(2, '0');
+      const endHour = minutes < 30 ? startHour : String(hours + 1).padStart(2, '0');
+      
+      const timeStart = `${startHour}:${startMin}`;
+      const timeEnd = `${endHour}:${endMin}`;
+      
+      const startPct = timeToPercent(timeStart);
+      const endPct = timeToPercent(timeEnd);
+      const widthPct = endPct - startPct;
+      
+      setCurrentBlock({
+        left: `${startPct}%`,
+        width: `${widthPct}%`
+      });
+    };
+
+    updateCurrentBlock();
+    
+    // Actualizar cada 30 segundos
+    const interval = setInterval(updateCurrentBlock, 30000);
+    return () => clearInterval(interval);
+  }, [days]);
+
   // Recargar servicios desde Supabase (sincronizar el timeline)
   const refreshServicios = async () => {
     const supabase = createClient();
@@ -355,15 +407,23 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
           <div className="w-28 flex-shrink-0 p-3 border-r border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-center sticky left-0 z-20 bg-slate-900">
             Día / Rango
           </div>
-          <div
-            className="flex-1 text-center text-[10px] font-black tracking-wider py-3 grid"
-            style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}
-          >
-            {['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'].map(hour => (
-              <div key={hour} className="border-r border-slate-800/40 last:border-0">
-                {hour}
-              </div>
-            ))}
+          <div className="flex-1 flex text-[9px] font-bold select-none py-1 bg-slate-900">
+            {HOURS_RANGE.map(hour => {
+              const isWholeHour = hour.endsWith(':00');
+              return (
+                <div 
+                  key={hour} 
+                  className="flex-1 text-center flex flex-col justify-center border-r border-slate-800/30 last:border-0"
+                >
+                  <span className="leading-tight text-white font-black">
+                    {isWholeHour ? parseInt(hour.split(':')[0], 10) : ''}
+                  </span>
+                  <span className={`text-[7.5px] leading-tight font-bold ${isWholeHour ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {isWholeHour ? '00' : '30'}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -393,6 +453,18 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
 
                 {/* Grid de Celdas Horarias de Fondo para el Drag-to-Create */}
                 <div className="flex-1 relative flex">
+                  
+                  {/* Franja horaria y línea roja de hora actual (guía vertical) */}
+                  {currentBlock && (
+                    <div 
+                      className="absolute top-0 bottom-0 bg-yellow-100/35 pointer-events-none z-0 border-l border-red-500/90"
+                      style={{
+                        left: currentBlock.left,
+                        width: currentBlock.width
+                      }}
+                    />
+                  )}
+
                   {HOURS_RANGE.map((hour) => (
                     <div
                       key={hour}
@@ -401,8 +473,8 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                       onMouseUp={handleCellMouseUp}
                       className={`flex-1 last:border-0 transition-all ${
                         hour.endsWith(':00') 
-                          ? 'border-r border-dashed border-slate-100 bg-white' 
-                          : 'border-r border-slate-200 bg-slate-50/40'
+                          ? 'border-r border-dashed border-slate-200/40 bg-white' 
+                          : 'border-r border-slate-300 bg-white' 
                       } ${
                         isCellSelected(dateStr, hour) 
                           ? '!bg-blue-600/10 !border-blue-300' 
