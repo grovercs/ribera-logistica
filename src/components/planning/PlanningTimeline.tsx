@@ -160,6 +160,32 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
     return () => clearInterval(interval);
   }, [days]);
 
+  // Estado para guardar la selección activa (antes de abrir el modal)
+  const [selectedRange, setSelectedRange] = useState<{ date: string; horaIni: string; horaFin: string } | null>(null);
+
+  // Listener para limpiar la selección si el usuario hace clic fuera o presiona Escape
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      // Si el clic no fue dentro del planning grid, deseleccionar
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setSelectedRange(null);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedRange(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   // Recargar servicios desde Supabase (sincronizar el timeline)
   const refreshServicios = async () => {
     const supabase = createClient();
@@ -266,13 +292,12 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
     const nextIdx = maxIdx + 1 < HOURS_RANGE.length ? maxIdx + 1 : maxIdx;
     const horaFin = HOURS_RANGE[nextIdx];
 
-    setModalInitialData({
-      fecha: dragStart.date,
+    // En lugar de abrir el modal de inmediato, guardamos la selección
+    setSelectedRange({
+      date: dragStart.date,
       horaIni,
       horaFin
     });
-    setSelectedServicioId(null);
-    setIsModalOpen(true);
 
     setDragStart(null);
     setDragEnd(null);
@@ -290,6 +315,17 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
     const maxIdx = Math.max(hStartIdx, hEndIdx);
     
     return cellIdx >= minIdx && cellIdx <= maxIdx;
+  };
+
+  // Comprobar si una celda está en el rango de selección estática guardada
+  const isRangeSelected = (dateStr: string, hourStr: string) => {
+    if (!selectedRange || dateStr !== selectedRange.date) return false;
+    
+    const hStartIdx = HOURS_RANGE.indexOf(selectedRange.horaIni);
+    const hEndIdx = HOURS_RANGE.indexOf(selectedRange.horaFin);
+    const cellIdx = HOURS_RANGE.indexOf(hourStr);
+    
+    return cellIdx >= hStartIdx && cellIdx < hEndIdx;
   };
 
   // --- LÓGICA DE HOVER TOOLTIP ---
@@ -465,23 +501,53 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                     />
                   )}
 
-                  {HOURS_RANGE.map((hour) => (
-                    <div
-                      key={hour}
-                      onMouseDown={() => handleCellMouseDown(dateStr, hour)}
-                      onMouseEnter={() => handleCellMouseEnter(dateStr, hour)}
-                      onMouseUp={handleCellMouseUp}
-                      className={`flex-1 last:border-0 transition-all ${
-                        hour.endsWith(':00') 
-                          ? 'border-r border-dashed border-slate-200/40 bg-white' 
-                          : 'border-r border-slate-300 bg-white' 
-                      } ${
-                        isCellSelected(dateStr, hour) 
-                          ? '!bg-blue-600/10 !border-blue-300' 
-                          : 'hover:bg-blue-500/5'
-                      }`}
-                    />
-                  ))}
+                  {HOURS_RANGE.map((hour) => {
+                    const isSel = isCellSelected(dateStr, hour) || isRangeSelected(dateStr, hour);
+                    return (
+                      <div
+                        key={hour}
+                        onMouseDown={() => handleCellMouseDown(dateStr, hour)}
+                        onMouseEnter={() => handleCellMouseEnter(dateStr, hour)}
+                        onMouseUp={handleCellMouseUp}
+                        className={`flex-1 last:border-0 transition-all ${
+                          hour.endsWith(':00') 
+                            ? 'border-r border-dashed border-slate-200/40 bg-white' 
+                            : 'border-r border-slate-300 bg-white' 
+                        } ${
+                          isSel 
+                            ? '!bg-blue-600/15 !border-blue-300' 
+                            : 'hover:bg-blue-500/5'
+                        }`}
+                      />
+                    );
+                  })}
+
+                  {/* Botón flotante para confirmar la creación del servicio (guía y acción unificada) */}
+                  {selectedRange && selectedRange.date === dateStr && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.stopPropagation()} // Evitar arrastre sobre el botón
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setModalInitialData({
+                          fecha: selectedRange.date,
+                          horaIni: selectedRange.horaIni,
+                          horaFin: selectedRange.horaFin
+                        });
+                        setSelectedServicioId(null);
+                        setIsModalOpen(true);
+                        setSelectedRange(null); // Limpiar selección tras abrir
+                      }}
+                      className="absolute z-30 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-full px-3 py-1 text-[10px] font-bold shadow-lg shadow-blue-500/30 flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer top-1/2 -translate-y-1/2 select-none border border-blue-400"
+                      style={{
+                        left: `${(timeToPercent(selectedRange.horaIni) + timeToPercent(selectedRange.horaFin)) / 2}%`,
+                        transform: 'translate(-50%, -50%)',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <span>+ Crear orden</span>
+                    </button>
+                  )}
 
                   {/* Renderizado de Bloques de Servicio Posicionados Absolutamente */}
                   {dayEvents.map((s) => {
