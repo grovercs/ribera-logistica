@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { getCrmDbConnection } from '@/lib/crm-db';
 
 // Interfaz para el guardado de materiales
 interface MaterialInput {
@@ -222,25 +223,117 @@ export async function eliminarServicio(id: number) {
 }
 
 /**
- * Busca clientes de la base de datos (caché del CRM) para autocompletar
+ * Busca clientes directamente en la base de datos de SQL Server del CRM Integral en vivo
  */
 export async function buscarClientesCRM(query: string) {
-  const supabase = await createClient();
-
   if (!query || query.trim().length < 2) return [];
 
   try {
-    const { data, error } = await supabase
-      .from('clientes_crm_cache')
-      .select('*')
-      .or(`nombre.ilike.%${query}%,codigo_cliente.eq.${isNaN(Number(query)) ? -1 : Number(query)},cif.ilike.%${query}%`)
-      .limit(10);
+    const pool = await getCrmDbConnection();
+    
+    // Preparar el parámetro de búsqueda
+    const likeQuery = `%${query.trim()}%`;
+    const numQuery = isNaN(Number(query.trim())) ? -1 : Number(query.trim());
 
-    if (error) throw error;
-    return data || [];
+    const request = pool.request();
+    request.input('likeQuery', likeQuery);
+    request.input('numQuery', numQuery);
+
+    const result = await request.query(`
+      SELECT TOP 10 cod_cliente, nombre_comercial, cif, direccion1, poblacion, telefono, e_mail
+      FROM clientes
+      WHERE nombre_comercial LIKE @likeQuery
+         OR cod_cliente = @numQuery
+         OR cif LIKE @likeQuery
+      ORDER BY nombre_comercial
+    `);
+
+    // Mapear los datos de SQL Server al formato que espera el frontend
+    return result.recordset.map(row => ({
+      codigo_cliente: row.cod_cliente,
+      nombre: row.nombre_comercial ? row.nombre_comercial.trim() : '',
+      cif: row.cif ? row.cif.trim() : '',
+      direccion: row.direccion1 ? row.direccion1.trim() : '',
+      poblacion: row.poblacion ? row.poblacion.trim() : '',
+      cod_postal: '',
+      provincia: '',
+      telefono: row.telefono ? row.telefono.trim() : '',
+      email: row.e_mail ? row.e_mail.trim() : '',
+      nombre_contacto: '',
+      telefono_contacto: ''
+    }));
   } catch (error) {
-    console.error("Error al buscar clientes:", error);
+    console.error("Error al buscar clientes en SQL Server:", error);
     return [];
+  }
+}
+
+/**
+ * Busca un presupuesto o documento de venta en vivo en SQL Server y devuelve su cabecera y líneas de artículos
+ */
+export async function buscarPresupuestoCRM(numDocumento: string) {
+  if (!numDocumento || numDocumento.trim().length < 2) {
+    return { error: "Debes ingresar un número de documento válido." };
+  }
+
+  try {
+    const pool = await getCrmDbConnection();
+    const queryTerm = numDocumento.trim();
+    const numQuery = isNaN(Number(queryTerm)) ? -1 : Number(queryTerm);
+
+    const request = pool.request();
+    request.input('queryTerm', `%${queryTerm}%`);
+    request.input('numQuery', numQuery);
+
+    // Buscar cabecera
+    const resCab = await request.query(`
+      SELECT TOP 1 cod_venta, tipo_venta, cod_documento, cod_cliente, nombre_comercial, cif, direccion1, cp, poblacion, provincia, telefono, e_mail
+      FROM ventas_cabecera
+      WHERE cod_venta = @numQuery
+         OR cod_documento LIKE @queryTerm
+    `);
+
+    if (resCab.recordset.length === 0) {
+      return { error: "No se encontró ningún presupuesto o documento con ese número en el Integral." };
+    }
+
+    const cab = resCab.recordset[0];
+
+    // Buscar líneas de artículos/materiales
+    const reqLines = pool.request();
+    reqLines.input('codVenta', cab.cod_venta);
+    const resLines = await reqLines.query(`
+      SELECT cod_articulo, descripcion, cantidad, precio, importe
+      FROM ventas_linea
+      WHERE cod_venta = @codVenta
+      ORDER BY linea
+    `);
+
+    return {
+      success: true,
+      documento: {
+        cod_venta: cab.cod_venta,
+        cod_documento: cab.cod_documento ? cab.cod_documento.trim() : '',
+        cliente_id: cab.cod_cliente,
+        nombre_cliente: cab.nombre_comercial ? cab.nombre_comercial.trim() : '',
+        cif: cab.cif ? cab.cif.trim() : '',
+        direccion: cab.direccion1 ? cab.direccion1.trim() : '',
+        poblacion: cab.poblacion ? cab.poblacion.trim() : '',
+        cod_postal: cab.cp ? cab.cp.trim() : '',
+        provincia: cab.provincia ? cab.provincia.trim() : '',
+        telefono: cab.telefono ? cab.telefono.trim() : '',
+        email: cab.e_mail ? cab.e_mail.trim() : ''
+      },
+      materiales: resLines.recordset.map(l => ({
+        codigo: l.cod_articulo ? l.cod_articulo.trim() : '0000',
+        descripcion: l.descripcion ? l.descripcion.trim() : '',
+        precio: Number(l.precio) || 0,
+        cantidad: Number(l.cantidad) || 1
+      }))
+    };
+  } catch (error: any) {
+    console.error("Error al buscar presupuesto en SQL Server:", error);
+    return { error: error.message || "Error al conectar con el CRM Integral." };
   }
 }
 
@@ -281,5 +374,34 @@ export async function obtenerSiguienteCodigoServicio(tiendaId: number) {
   } catch (error) {
     console.error("Error al calcular el código del servicio:", error);
     return `${currentYear}-${tiendaId}-00001`;
+  }
+}
+
+/**
+ * Obtiene los presupuestos recientes de un cliente en particular desde SQL Server
+ */
+export async function obtenerPresupuestosClienteCRM(clienteId: number) {
+  try {
+    const pool = await getCrmDbConnection();
+    const request = pool.request();
+    request.input('clienteId', clienteId);
+
+    const result = await request.query(`
+      SELECT TOP 10 cod_venta, cod_documento, fecha_venta,
+             COALESCE(importe_impuestos, importe, 0) AS total
+      FROM ventas_cabecera
+      WHERE cod_cliente = @clienteId
+      ORDER BY fecha_venta DESC, cod_venta DESC
+    `);
+
+    return result.recordset.map(row => ({
+      cod_venta: row.cod_venta,
+      cod_documento: row.cod_documento ? row.cod_documento.trim() : '',
+      fecha: row.fecha_venta ? new Date(row.fecha_venta).toLocaleDateString('es-ES') : '',
+      total: Number(row.total) || 0
+    }));
+  } catch (error) {
+    console.error("Error al obtener presupuestos del cliente:", error);
+    return [];
   }
 }

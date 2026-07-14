@@ -30,7 +30,7 @@ export default async function PlanningPage() {
     supabase.from('estados').select('*').order('id'),
     supabase.from('tipos_documentos').select('*').order('id'),
     supabase.from('tipos_servicios').select('*').order('id'),
-    supabase.from('empleados').select('*').order('id'),
+    supabase.from('empleados').select('*').order('nombre'),
     supabase
       .from('servicios')
       .select(`
@@ -62,6 +62,7 @@ export default async function PlanningPage() {
 
       {/* Renderizado del Timeline Cliente */}
       <PlanningTimeline 
+        initialStartDateStr={startStr}
         initialServicios={servicios || []} 
         catalogos={catalogos} 
       />

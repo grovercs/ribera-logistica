@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, User, Calendar, Wrench, AlertTriangle } from 'lucide-react';
 import ServicioModal from '../servicios/ServicioModal';
 import ServicioTooltip from './ServicioTooltip';
+import { createClient } from '@/lib/supabase/client';
 
 interface CatalogoItem {
   id: number;
@@ -15,6 +16,7 @@ interface EmpleadoItem {
   id: number;
   nombre: string;
   telefono: string | null;
+  activo: boolean;
 }
 
 interface Catalogos {
@@ -26,6 +28,7 @@ interface Catalogos {
 }
 
 interface PlanningTimelineProps {
+  initialStartDateStr: string;
   initialServicios: any[];
   catalogos: Catalogos;
 }
@@ -38,18 +41,25 @@ const HOURS_RANGE = [
   '20:00', '20:30'
 ];
 
-export default function PlanningTimeline({ initialServicios, catalogos }: PlanningTimelineProps) {
-  const [servicios, setServicios] = useState<any[]>(initialServicios);
-  const [activeEmpleadoId, setActiveEmpleadoId] = useState<number | null>(
-    catalogos.empleados.length > 0 ? catalogos.empleados[0].id : null
-  );
+const formatDateLocal = (date: Date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 
-  // Rango quincenal (empezando por el lunes de la semana actual)
+export default function PlanningTimeline({ initialStartDateStr, initialServicios, catalogos }: PlanningTimelineProps) {
+  const [servicios, setServicios] = useState<any[]>(initialServicios);
+  const [activeEmpleadoId, setActiveEmpleadoId] = useState<number | null>(() => {
+    const gaby = catalogos.empleados.find(e => e.nombre.toLowerCase() === 'gaby');
+    if (gaby) return gaby.id;
+    return catalogos.empleados.length > 0 ? catalogos.empleados[0].id : null;
+  });
+
+  // Rango quincenal (empezando por la fecha calculada por el servidor en hora local)
   const [startDate, setStartDate] = useState<Date>(() => {
-    const d = new Date();
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // lunes de esta semana
-    const start = new Date(d.setDate(diff));
+    const localStr = initialStartDateStr.replace(/-/g, '/'); // barras para evitar que JS interprete como UTC
+    const start = new Date(localStr);
     start.setHours(0, 0, 0, 0);
     return start;
   });
@@ -88,6 +98,11 @@ export default function PlanningTimeline({ initialServicios, catalogos }: Planni
     setDays(list);
   }, [startDate]);
 
+  // Cargar servicios en caliente cuando cambie la quincena (startDate)
+  useEffect(() => {
+    refreshServicios();
+  }, [startDate]);
+
   // Actualizar los servicios locales si cambian los iniciales
   useEffect(() => {
     setServicios(initialServicios);
@@ -95,9 +110,9 @@ export default function PlanningTimeline({ initialServicios, catalogos }: Planni
 
   // Recargar servicios desde Supabase (sincronizar el timeline)
   const refreshServicios = async () => {
-    const supabase = require('@/lib/supabase/client').createClient();
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const supabase = createClient();
+    const startStr = formatDateLocal(startDate);
+    const endStr = formatDateLocal(new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000));
 
     const { data } = await supabase
       .from('servicios')
@@ -123,6 +138,19 @@ export default function PlanningTimeline({ initialServicios, catalogos }: Planni
       newStart.setDate(startDate.getDate() + 14);
     }
     setStartDate(newStart);
+  };
+
+  const handleDateChange = (dateStr: string) => {
+    if (!dateStr) return;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return;
+    
+    // Ajustar al lunes de la semana seleccionada
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const start = new Date(d.setDate(diff));
+    start.setHours(0, 0, 0, 0);
+    setStartDate(start);
   };
 
   // Convertir hora de HH:MM:SS o HH:MM a minutos desde las 08:00
@@ -271,15 +299,18 @@ export default function PlanningTimeline({ initialServicios, catalogos }: Planni
               onChange={(e) => setActiveEmpleadoId(e.target.value ? Number(e.target.value) : null)}
               className="bg-white border-0 text-sm font-bold text-slate-800 focus:outline-none pr-6 cursor-pointer mt-0.5"
             >
+              <option value="">-- Sin asignar --</option>
               {catalogos.empleados.map(emp => (
-                <option key={emp.id} value={emp.id}>{emp.nombre}</option>
+                <option key={emp.id} value={emp.id}>
+                  {emp.nombre}{!emp.activo ? ' (Inactivo)' : ''}
+                </option>
               ))}
             </select>
           </div>
         </div>
 
         {/* Navegador Quincenal */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-white">
             <button 
               onClick={() => navigateTime('prev')}
@@ -297,19 +328,37 @@ export default function PlanningTimeline({ initialServicios, catalogos }: Planni
               <ChevronRight size={16} />
             </button>
           </div>
+
+          <div className="flex items-center gap-1.5 border border-slate-200 bg-white px-3 py-1 rounded-xl">
+            <Calendar size={14} className="text-slate-400" />
+            <input 
+              type="date"
+              value={formatDateLocal(startDate)}
+              onChange={(e) => handleDateChange(e.target.value)}
+              className="border-0 text-xs font-bold text-slate-700 focus:outline-none bg-white cursor-pointer py-1"
+            />
+          </div>
         </div>
 
       </div>
 
       {/* Grid del Planning (Timeline) */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        
+
+        {/* Wrapper de scroll horizontal: en móvil se desliza para ver todas las horas.
+            La columna de día queda fija (sticky) mientras se desliza. */}
+        <div className="overflow-x-auto">
+          <div className="min-w-[760px]">
+
         {/* Cabecera de Horas (Eje X) */}
         <div className="flex border-b border-slate-200 bg-slate-900 text-white select-none">
-          <div className="w-28 flex-shrink-0 p-3 border-r border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-center">
+          <div className="w-28 flex-shrink-0 p-3 border-r border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-center sticky left-0 z-20 bg-slate-900">
             Día / Rango
           </div>
-          <div className="flex-1 grid grid-cols-13 text-center text-[10px] font-black tracking-wider py-3">
+          <div
+            className="flex-1 text-center text-[10px] font-black tracking-wider py-3 grid"
+            style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}
+          >
             {['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'].map(hour => (
               <div key={hour} className="border-r border-slate-800/40 last:border-0">
                 {hour}
@@ -321,7 +370,7 @@ export default function PlanningTimeline({ initialServicios, catalogos }: Planni
         {/* Filas de Días (Eje Y) */}
         <div className="divide-y divide-slate-200 flex flex-col select-none">
           {days.map((date) => {
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = formatDateLocal(date);
             const weekday = date.toLocaleDateString('es-ES', { weekday: 'short' });
             const dayNum = date.getDate();
             const monthStr = date.toLocaleDateString('es-ES', { month: 'short' });
@@ -329,14 +378,14 @@ export default function PlanningTimeline({ initialServicios, catalogos }: Planni
             // Filtrar servicios asignados a este operario en este día específico
             const dayEvents = servicios.filter(s => 
               s.fecha_entrega === dateStr && 
-              s.empleado_id === activeEmpleadoId
+              (activeEmpleadoId === null ? s.empleado_id === null : s.empleado_id === activeEmpleadoId)
             );
 
             return (
               <div key={dateStr} className="flex relative h-12 hover:bg-slate-50/40 transition-colors">
                 
-                {/* Etiqueta de la Fecha */}
-                <div className="w-28 flex-shrink-0 bg-slate-50/60 border-r border-slate-200 flex flex-col items-center justify-center py-2 text-center">
+                {/* Etiqueta de la Fecha (fija al deslizar horizontalmente) */}
+                <div className="w-28 flex-shrink-0 bg-slate-50 border-r border-slate-200 flex flex-col items-center justify-center py-2 text-center sticky left-0 z-20">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{weekday}</span>
                   <span className="text-sm font-black text-slate-800 leading-none mt-0.5">{dayNum}</span>
                   <span className="text-[9px] font-bold text-slate-500 capitalize">{monthStr}</span>
@@ -365,8 +414,33 @@ export default function PlanningTimeline({ initialServicios, catalogos }: Planni
                   {/* Renderizado de Bloques de Servicio Posicionados Absolutamente */}
                   {dayEvents.map((s) => {
                     const pos = getEventPosition(s);
-                    // Usar color de tipo de servicio del catálogo
-                    const eventColor = s.tipos_servicios?.color || '#3b82f6'; // Azul por defecto
+                    // Obtener color base
+                    let baseColor = s.tipos_servicios?.color || '#3b82f6';
+                    
+                    // Normalizar y comprobar si es un color negro, gris oscuro o rojo/marrón muy oscuro agresivo
+                    const cleanColor = baseColor.trim().toLowerCase();
+                    const isDark = 
+                      cleanColor === '#000000' || 
+                      cleanColor === '#000' || 
+                      cleanColor === 'black' ||
+                      cleanColor.startsWith('rgb(0') ||
+                      cleanColor.startsWith('rgba(0') ||
+                      cleanColor === '#111' ||
+                      cleanColor === '#111111' ||
+                      cleanColor === '#222' ||
+                      cleanColor === '#222222' ||
+                      cleanColor === '#333' ||
+                      cleanColor === '#333333' ||
+                      cleanColor === '#1d0000' ||
+                      cleanColor.includes('rgb(29') ||
+                      cleanColor.includes('rgba(29');
+                    
+                    if (isDark) {
+                      baseColor = '#3b82f6'; // Forzar a azul agradable
+                    }
+                    
+                    // Crear gradiente lineal horizontal (degradado de mayor a menor)
+                    const gradient = `linear-gradient(90deg, ${baseColor} 0%, ${baseColor}33 100%)`;
 
                     return (
                       <div
@@ -375,12 +449,13 @@ export default function PlanningTimeline({ initialServicios, catalogos }: Planni
                         onMouseEnter={(e) => handleEventMouseEnter(e, s)}
                         onMouseMove={handleEventMouseMove}
                         onMouseLeave={handleEventMouseLeave}
-                        className="absolute h-8 top-2 bg-blue-600 border border-blue-700 text-white rounded-lg flex items-center px-2.5 text-xs font-bold shadow-md cursor-pointer transition-all hover:brightness-105 active:scale-[0.98] select-none z-10"
+                        className="absolute h-8 top-2 text-white rounded-lg flex items-center px-2.5 text-xs font-bold shadow-md cursor-pointer transition-all hover:brightness-105 active:scale-[0.98] select-none z-10 border"
                         style={{
                           left: pos.left,
                           width: pos.width,
-                          backgroundColor: eventColor,
-                          borderColor: `${eventColor}dd`
+                          background: gradient,
+                          borderColor: `${baseColor}cc`,
+                          textShadow: '0 1px 2px rgba(0,0,0,0.15)'
                         }}
                       >
                         <div className="flex items-center gap-1.5 w-full min-w-0">
@@ -400,6 +475,9 @@ export default function PlanningTimeline({ initialServicios, catalogos }: Planni
             );
           })}
         </div>
+
+          </div>{/* /min-w */}
+        </div>{/* /overflow-x-auto */}
 
       </div>
 

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Plus, Search, Edit2, Trash2, Calendar, User, Phone, CheckCircle } from 'lucide-react';
 import ServicioModal from './ServicioModal';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { eliminarServicio } from '@/app/(dashboard)/planning/actions';
 
 interface ServiciosAdminContainerProps {
@@ -17,6 +18,10 @@ export default function ServiciosAdminContainer({ initialServicios, catalogos }:
   // Modal State
   const [selectedServicioId, setSelectedServicioId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Servicio pendiente de eliminar (esperando confirmación del usuario)
+  const [pendingDelete, setPendingDelete] = useState<{ id: number; codigo: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Refrescar lista de servicios
   const refreshList = async () => {
@@ -48,11 +53,15 @@ export default function ServiciosAdminContainer({ initialServicios, catalogos }:
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: number, codigo: string) => {
-    if (!confirm(`¿Estás seguro de que deseas eliminar el servicio ${codigo}?`)) return;
-    
-    const res = await eliminarServicio(id);
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+
+    setDeleting(true);
+    const res = await eliminarServicio(pendingDelete.id);
+    setDeleting(false);
+
     if (res.success) {
+      setPendingDelete(null);
       await refreshList();
     } else {
       alert(`Error al eliminar: ${res.error}`);
@@ -168,7 +177,7 @@ export default function ServiciosAdminContainer({ initialServicios, catalogos }:
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(s.id, s.codigo_servicio)}
+                          onClick={() => setPendingDelete({ id: s.id, codigo: s.codigo_servicio })}
                           className="p-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 rounded-md transition-all cursor-pointer"
                           title="Eliminar"
                         >
@@ -191,6 +200,18 @@ export default function ServiciosAdminContainer({ initialServicios, catalogos }:
         onSaved={refreshList}
         servicioId={selectedServicioId}
         catalogos={catalogos}
+      />
+
+      {/* Diálogo de confirmación para eliminar servicio */}
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Eliminar servicio"
+        message={`¿Seguro que deseas eliminar el servicio ${pendingDelete?.codigo || ''}? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => { if (!deleting) setPendingDelete(null); }}
       />
 
     </div>

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import AgendaFilters from './AgendaFilters';
 import AgendaTable from './AgendaTable';
+import { createClient } from '@/lib/supabase/client';
 
 interface AgendaContainerProps {
   initialServicios: any[];
@@ -13,7 +14,7 @@ export default function AgendaContainer({ initialServicios, catalogos }: AgendaC
   const [servicios, setServicios] = useState<any[]>(initialServicios);
   
   // Estados de filtros
-  const [filtroRapido, setFiltroRapido] = useState<string>('todos_pendientes');
+  const [filtroRapido, setFiltroRapido] = useState<string>('todos');
   const [searchText, setSearchText] = useState<string>('');
   const [selectedEmpleadoId, setSelectedEmpleadoId] = useState<number | null>(null);
   const [selectedTiendaId, setSelectedTiendaId] = useState<number | null>(null);
@@ -22,7 +23,7 @@ export default function AgendaContainer({ initialServicios, catalogos }: AgendaC
 
   // Refrescar lista de servicios
   const refreshList = async () => {
-    const supabase = require('@/lib/supabase/client').createClient();
+    const supabase = createClient();
     const { data } = await supabase
       .from('servicios')
       .select(`

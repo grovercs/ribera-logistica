@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, CheckCircle2, XCircle, Phone, UserPlus, Settings, Building2, Store } from 'lucide-react';
 import { guardarEmpleado, toggleEmpleadoActivo } from '@/app/(dashboard)/configuracion/actions';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface Empleado {
   id: number;
@@ -34,6 +35,10 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
   const [empNombre, setEmpNombre] = useState('');
   const [empTelefono, setEmpTelefono] = useState('');
   const [empActivo, setEmpActivo] = useState(true);
+
+  // Técnico pendiente de (des)activar, esperando confirmación del usuario
+  const [pendingToggle, setPendingToggle] = useState<Empleado | null>(null);
+  const [toggling, setToggling] = useState(false);
 
   // Refrescar lista de operarios
   const refreshList = async () => {
@@ -84,9 +89,15 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
     }
   };
 
-  const handleToggleActivo = async (emp: Empleado) => {
-    const res = await toggleEmpleadoActivo(emp.id, emp.activo);
+  const handleToggleActivo = async () => {
+    if (!pendingToggle) return;
+
+    setToggling(true);
+    const res = await toggleEmpleadoActivo(pendingToggle.id, pendingToggle.activo);
+    setToggling(false);
+
     if (res.success) {
+      setPendingToggle(null);
       await refreshList();
     } else {
       alert(`Error: ${res.error}`);
@@ -189,7 +200,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                           <td className="px-5 py-3.5 text-center">
                             <button
                               type="button"
-                              onClick={() => handleToggleActivo(emp)}
+                              onClick={() => setPendingToggle(emp)}
                               className={`px-2.5 py-1 rounded-full text-[9px] font-bold uppercase flex items-center justify-center gap-1.5 w-24 mx-auto cursor-pointer transition-all border ${
                                 emp.activo
                                   ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
@@ -333,6 +344,22 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
           </div>
         </div>
       )}
+
+      {/* Diálogo de confirmación para (des)activar un técnico */}
+      <ConfirmDialog
+        open={pendingToggle !== null}
+        title={pendingToggle?.activo ? 'Desactivar técnico' : 'Activar técnico'}
+        message={
+          pendingToggle?.activo
+            ? `¿Seguro que deseas DESACTIVAR a ${pendingToggle.nombre}? Dejará de aparecer en las asignaciones de órdenes (las órdenes ya asignadas no se modifican).`
+            : `¿Deseas volver a ACTIVAR a ${pendingToggle?.nombre || ''}? Volverá a estar disponible para asignaciones.`
+        }
+        confirmText={pendingToggle?.activo ? 'Desactivar' : 'Activar'}
+        variant={pendingToggle?.activo ? 'danger' : 'primary'}
+        loading={toggling}
+        onConfirm={handleToggleActivo}
+        onCancel={() => { if (!toggling) setPendingToggle(null); }}
+      />
 
     </div>
   );

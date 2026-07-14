@@ -15,7 +15,7 @@ export default async function ServiciosPage() {
     { data: servicios }
   ] = await Promise.all([
     supabase.from('tiendas').select('*').order('id'),
-    supabase.from('empleados').select('*').order('id'),
+    supabase.from('empleados').select('*').eq('activo', true).order('nombre'),
     supabase.from('estados').select('*').order('id'),
     supabase.from('tipos_documentos').select('*').order('id'),
     supabase.from('tipos_servicios').select('*').order('id'),

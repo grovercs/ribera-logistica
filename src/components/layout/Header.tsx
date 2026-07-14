@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { User, Bell, ShieldCheck, Database } from 'lucide-react';
+import { User, Bell, ShieldCheck } from 'lucide-react';
 
 interface HeaderProps {
   user?: {
@@ -36,10 +36,13 @@ export default function Header({ user }: HeaderProps) {
       {/* Acciones e Info del Usuario */}
       <div className="flex items-center gap-6">
         
-        {/* Indicador de Estado de Conexión a Base de Datos */}
+        {/* Indicador genérico de sistema en línea (no expone la tecnología usada) */}
         <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-[10px] font-bold">
-          <Database size={12} className="text-emerald-600" />
-          <span>Supabase Online</span>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          <span>En línea</span>
         </div>
 
         {/* Botón de Notificaciones */}

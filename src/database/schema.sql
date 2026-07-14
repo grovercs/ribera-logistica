@@ -204,12 +204,13 @@ CREATE TABLE IF NOT EXISTS public.servicios_incidencias (
 );
 
 -- Historial de Correos Electrónicos Enviados
-CREATE TABLE IF NOT EXISTS public.correos_historial (
+CREATE TABLE IF NOT EXISTS public.servicios_correos (
     id SERIAL PRIMARY KEY,
-    servicio_id INTEGER REFERENCES public.servicios(id) ON DELETE SET NULL,
-    codigo_servicio TEXT,
+    servicio_id INTEGER REFERENCES public.servicios(id) ON DELETE CASCADE,
+    destinatario TEXT NOT NULL,
     asunto TEXT NOT NULL,
-    para TEXT NOT NULL,
-    mensaje TEXT,
-    fecha_envio TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    cuerpo TEXT,
+    estado TEXT NOT NULL DEFAULT 'Enviado',
+    error_log TEXT,
+    fecha TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

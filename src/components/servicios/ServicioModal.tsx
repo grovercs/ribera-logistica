@@ -17,14 +17,17 @@ import {
   Printer,
   Mail
 } from 'lucide-react';
-import { 
-  guardarServicio, 
-  eliminarServicio, 
-  buscarClientesCRM, 
-  obtenerSiguienteCodigoServicio 
+import {
+  guardarServicio,
+  eliminarServicio,
+  buscarClientesCRM,
+  obtenerSiguienteCodigoServicio,
+  buscarPresupuestoCRM,
+  obtenerPresupuestosClienteCRM
 } from '@/app/(dashboard)/planning/actions';
 import { enviarCorreoServicio } from '@/app/(dashboard)/correos/actions';
 import { createClient } from '@/lib/supabase/client';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface CatalogoItem {
   id: number;
@@ -89,11 +92,18 @@ export default function ServicioModal({
   const [activeTab, setActiveTab] = useState<'materiales' | 'trabajos' | 'externos' | 'notas' | 'incidencias'>('materiales');
   const [loading, setLoading] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  // Acción que está esperando confirmación del usuario (Guardar / Borrar).
+  // Mantiene el diálogo abierto con estado "Procesando..." hasta que termina.
+  const [pendingAction, setPendingAction] = useState<'save' | 'delete' | null>(null);
   const [emailInput, setEmailInput] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [searchCrmQuery, setSearchCrmQuery] = useState('');
   const [crmSuggestions, setCrmSuggestions] = useState<any[]>([]);
   const [showCrmSuggestions, setShowCrmSuggestions] = useState(false);
+  const [crmSearching, setCrmSearching] = useState(false);
+  const [crmError, setCrmError] = useState<string | null>(null);
+  const [presupuestosCliente, setPresupuestosCliente] = useState<any[]>([]);
+  const [loadingPresupuestos, setLoadingPresupuestos] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // --- ESTADOS LOCALES DE LOS CAMPOS ---
@@ -147,6 +157,66 @@ export default function ServicioModal({
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [totalServPropio, setTotalServPropio] = useState(0);
   const [totalServExt, setTotalServExt] = useState(0);
+
+  const [searchingDoc, setSearchingDoc] = useState(false);
+
+  // Carga los presupuestos (documentos de venta) que un cliente tiene en el CRM Integral
+  const cargarPresupuestosCliente = async (clienteId: number | null) => {
+    if (!clienteId) {
+      setPresupuestosCliente([]);
+      return;
+    }
+    setLoadingPresupuestos(true);
+    try {
+      const docs = await obtenerPresupuestosClienteCRM(clienteId);
+      setPresupuestosCliente(docs || []);
+    } catch (err) {
+      console.error("Error al obtener presupuestos del cliente:", err);
+      setPresupuestosCliente([]);
+    } finally {
+      setLoadingPresupuestos(false);
+    }
+  };
+
+  // Acepta un nº de documento opcional para poder importar directamente al elegir
+  // un presupuesto del desplegable (sin esperar al refresco del state numDocumento).
+  const handleImportarPresupuesto = async (docNum?: string) => {
+    const numero = (docNum ?? numDocumento)?.trim();
+    if (!numero || numero.length < 2) return;
+
+    setSearchingDoc(true);
+    try {
+      const res = await buscarPresupuestoCRM(numero);
+      if (res.error) {
+        alert(res.error);
+      } else if (res.success && res.documento) {
+        const doc = res.documento;
+        setClienteId(doc.cliente_id);
+        setNombreCliente(doc.nombre_cliente);
+        setCif(doc.cif);
+        setClienteDireccion(doc.direccion);
+        setClientePoblacion(doc.poblacion);
+        setClienteCodPostal(doc.cod_postal);
+        setClienteProvincia(doc.provincia);
+        setClienteTelefono(doc.telefono);
+        setClienteEmail(doc.email);
+        setEmailInput(doc.email);
+        
+        // Importar materiales asociados si existen
+        if (res.materiales && res.materiales.length > 0) {
+          setMateriales(res.materiales);
+          alert(`¡Éxito! Documento encontrado. Se importaron los datos del cliente y ${res.materiales.length} artículos del presupuesto.`);
+        } else {
+          alert("¡Éxito! Documento encontrado. Se importaron los datos del cliente.");
+        }
+      }
+    } catch (err) {
+      console.error("Error al importar presupuesto:", err);
+      alert("Error de conexión al buscar el documento.");
+    } finally {
+      setSearchingDoc(false);
+    }
+  };
 
   // Material local editado en formulario
   const [newMatCodigo, setNewMatCodigo] = useState('');
@@ -203,6 +273,12 @@ export default function ServicioModal({
     setTotalServExt(0);
     setCif( '');
     setSearchCrmQuery('');
+    setCrmSuggestions([]);
+    setShowCrmSuggestions(false);
+    setCrmSearching(false);
+    setCrmError(null);
+    setPresupuestosCliente([]);
+    setLoadingPresupuestos(false);
     setEmailInput('');
     setShowEmailModal(false);
 
@@ -302,6 +378,9 @@ export default function ServicioModal({
             setClienteTelContacto(cli.telefono_contacto || '');
           }
         }
+
+        // Cargar los presupuestos que el cliente tiene en el CRM Integral
+        cargarPresupuestosCliente(s.cliente_id);
       }
     } catch (err) {
       console.error("Error al cargar el servicio de edición:", err);
@@ -322,12 +401,26 @@ export default function ServicioModal({
     setNombreCliente(val); // Asignar temporalmente si es manual
 
     if (val.trim().length >= 2) {
-      const res = await buscarClientesCRM(val);
-      setCrmSuggestions(res);
-      setShowCrmSuggestions(true);
+      setCrmSearching(true);
+      setCrmError(null);
+      try {
+        const res = await buscarClientesCRM(val);
+        setCrmSuggestions(res || []);
+        setShowCrmSuggestions(true);
+      } catch (err: any) {
+        // Si la server action falla (p.ej. no hay conexión al CRM), lo registramos
+        // y lo mostramos para diagnosticar en lugar de quedar en silencio.
+        console.error("Error al buscar clientes en el CRM:", err);
+        setCrmSuggestions([]);
+        setShowCrmSuggestions(false);
+        setCrmError(err?.message || 'No se pudo consultar el CRM Integral.');
+      } finally {
+        setCrmSearching(false);
+      }
     } else {
       setCrmSuggestions([]);
       setShowCrmSuggestions(false);
+      setCrmError(null);
     }
   };
 
@@ -345,9 +438,13 @@ export default function ServicioModal({
     setEmailInput(cli.email || '');
     setClienteContacto(cli.nombre_contacto || '');
     setClienteTelContacto(cli.telefono_contacto || '');
-    
+
     setShowCrmSuggestions(false);
     setSearchCrmQuery('');
+
+    // Cargar los presupuestos que este cliente tiene en el CRM Integral
+    setNumDocumento('');
+    cargarPresupuestosCliente(cli.codigo_cliente);
   };
 
   // Copiar dirección del cliente a destino
@@ -477,7 +574,15 @@ export default function ServicioModal({
     setLoading(false);
     if (res.success) {
       onSaved();
-      onClose();
+      if (!id && res.id) {
+        // Servicio nuevo: en lugar de cerrar, dejamos el modal abierto con el
+        // nuevo id ya cargado. Así aparecen los botones de Imprimir / Email /
+        // Borrar y el operario puede imprimir la orden para entregarla en mano
+        // o enviarla por correo sin tener que reabrir el servicio.
+        setId(res.id);
+      } else {
+        onClose();
+      }
     } else {
       alert(`Error al guardar: ${res.error}`);
     }
@@ -486,7 +591,6 @@ export default function ServicioModal({
   // Eliminar servicio en Supabase
   const handleDelete = async () => {
     if (!id) return;
-    if (!confirm(`¿Estás seguro de que deseas eliminar el servicio ${codigoServicio}?`)) return;
 
     setLoading(true);
     const res = await eliminarServicio(id);
@@ -497,6 +601,21 @@ export default function ServicioModal({
       onClose();
     } else {
       alert(`Error al eliminar: ${res.error}`);
+    }
+  };
+
+  // Ejecuta la acción que el usuario confirmó en el diálogo de confirmación,
+  // y cierra el diálogo al terminar (salvo que el modal se haya cerrado ya).
+  const runPendingAction = async () => {
+    const action = pendingAction;
+    try {
+      if (action === 'save') {
+        await handleSave();
+      } else if (action === 'delete') {
+        await handleDelete();
+      }
+    } finally {
+      setPendingAction(null);
     }
   };
 
@@ -597,8 +716,19 @@ export default function ServicioModal({
                   placeholder="Introduce nombre o código del cliente..."
                 />
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                {crmSearching && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 animate-pulse">Buscando...</span>
+                )}
               </div>
-              
+
+              {/* Aviso de error de conexión con el CRM */}
+              {crmError && !showCrmSuggestions && (
+                <p className="text-[10px] font-bold text-red-500 mt-1 flex items-center gap-1">
+                  <AlertTriangle size={11} />
+                  <span>{crmError}</span>
+                </p>
+              )}
+
               {/* Dropdown de Sugerencias */}
               {showCrmSuggestions && crmSuggestions.length > 0 && (
                 <div className="absolute top-full left-0 right-0 bg-white border border-slate-200 shadow-xl rounded-xl mt-1 z-30 max-h-48 overflow-y-auto divide-y divide-slate-100">
@@ -678,15 +808,58 @@ export default function ServicioModal({
               </select>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase block">Nº Documento</label>
-              <input 
-                type="text"
-                value={numDocumento}
-                onChange={(e) => setNumDocumento(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
-                placeholder="Ej. 25204160"
-              />
+            <div className="space-y-1 md:col-span-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase block">
+                Nº Documento / Presupuesto
+                {presupuestosCliente.length > 0 && (
+                  <span className="ml-1 text-[9px] text-blue-500 normal-case font-bold">({presupuestosCliente.length} del cliente)</span>
+                )}
+              </label>
+              <div className="flex gap-1.5">
+                {presupuestosCliente.length > 0 ? (
+                  <select
+                    value={numDocumento}
+                    onChange={(e) => {
+                      const cod = e.target.value;
+                      setNumDocumento(cod);
+                      if (cod) handleImportarPresupuesto(cod);
+                    }}
+                    disabled={searchingDoc}
+                    className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
+                  >
+                    <option value="">— Selecciona un presupuesto —</option>
+                    {presupuestosCliente.map(p => (
+                      <option key={p.cod_venta} value={p.cod_venta}>
+                        {p.cod_documento ? p.cod_documento : `Nº ${p.cod_venta}`} {p.fecha ? `· ${p.fecha}` : ''} {p.total ? `· ${Number(p.total).toFixed(2)}€` : ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : loadingPresupuestos ? (
+                  <input
+                    type="text"
+                    disabled
+                    placeholder="Cargando presupuestos..."
+                    className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 text-slate-400 text-sm font-semibold"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={numDocumento}
+                    onChange={(e) => setNumDocumento(e.target.value)}
+                    className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                    placeholder="Ej. 23108160"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleImportarPresupuesto()}
+                  disabled={searchingDoc || !numDocumento}
+                  className="flex-shrink-0 px-3 bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 disabled:opacity-50 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"
+                  title="Buscar presupuesto en CRM Integral e importar datos"
+                >
+                  {searchingDoc ? 'Buscando...' : 'Importar'}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-1">
@@ -702,7 +875,7 @@ export default function ServicioModal({
               </select>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1 md:col-span-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase block">Operario Asignado</label>
               <select
                 value={empleadoId || ''}
@@ -764,7 +937,6 @@ export default function ServicioModal({
                         value={newMatDesc}
                         onChange={(e) => setNewMatDesc(e.target.value)}
                         placeholder="Descripción del material..."
-                        required
                         className="sm:col-span-5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
                       />
                       <input 
@@ -1173,7 +1345,7 @@ export default function ServicioModal({
             {id && (
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={() => setPendingAction('delete')}
                 disabled={loading}
                 className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
               >
@@ -1194,7 +1366,7 @@ export default function ServicioModal({
             {/* Guardar */}
             <button
               type="button"
-              onClick={handleSave}
+              onClick={() => setPendingAction('save')}
               disabled={loading}
               className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl px-5 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-blue-600/10 hover:shadow-blue-500/20 transition-all disabled:opacity-50"
             >
@@ -1256,6 +1428,24 @@ export default function ServicioModal({
           </div>
         </div>
       )}
+
+      {/* Diálogo de confirmación para Guardar / Borrar */}
+      <ConfirmDialog
+        open={pendingAction !== null}
+        title={pendingAction === 'delete' ? 'Eliminar servicio' : 'Guardar servicio'}
+        message={
+          pendingAction === 'delete'
+            ? `¿Seguro que deseas eliminar el servicio ${codigoServicio}? Esta acción no se puede deshacer.`
+            : id
+              ? '¿Confirmas guardar los cambios realizados en este servicio?'
+              : '¿Confirmas crear este nuevo servicio?'
+        }
+        confirmText={pendingAction === 'delete' ? 'Eliminar' : 'Guardar'}
+        variant={pendingAction === 'delete' ? 'danger' : 'primary'}
+        loading={loading}
+        onConfirm={runPendingAction}
+        onCancel={() => { if (!loading) setPendingAction(null); }}
+      />
 
     </div>
   );

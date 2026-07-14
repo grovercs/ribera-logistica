@@ -42,3 +42,13 @@ next-env.d.ts
 
 # database backups
 ribera_datos.sql
+ribera.sql
+
+# local diagnostic/utility scripts
+/*.js
+!eslint.config.mjs
+!postcss.config.mjs
+!next.config.ts
+
+# large images/resources
+/imagenes/
