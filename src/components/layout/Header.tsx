@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { User, Bell, ShieldCheck } from 'lucide-react';
+import { User, Bell, ShieldCheck, Menu } from 'lucide-react';
 
 interface HeaderProps {
   user?: {
@@ -9,9 +9,10 @@ interface HeaderProps {
     nombre?: string;
     rol?: string;
   } | null;
+  onMenuClick?: () => void;
 }
 
-export default function Header({ user }: HeaderProps) {
+export default function Header({ user, onMenuClick }: HeaderProps) {
   // Obtener fecha del día de hoy en español
   const getTodayDateString = () => {
     const today = new Date();
@@ -24,11 +25,19 @@ export default function Header({ user }: HeaderProps) {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-20 font-sans shadow-sm">
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-20 font-sans shadow-sm">
       
-      {/* Título o Fecha */}
+      {/* Título o Fecha con menú hamburguesa para móvil */}
       <div className="flex items-center gap-3">
-        <span className="text-xs font-bold text-slate-400 capitalize">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="p-2 text-slate-500 hover:text-slate-700 transition-colors md:hidden rounded-lg hover:bg-slate-100 cursor-pointer flex items-center justify-center"
+          title="Abrir menú"
+        >
+          <Menu size={20} />
+        </button>
+        <span className="text-xs font-bold text-slate-400 capitalize hidden sm:inline">
           {getTodayDateString()}
         </span>
       </div>

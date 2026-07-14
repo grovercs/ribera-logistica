@@ -1,6 +1,5 @@
 import React from 'react';
-import Sidebar from '@/components/layout/Sidebar';
-import Header from '@/components/layout/Header';
+import LayoutShell from '@/components/layout/LayoutShell';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function DashboardLayout({
@@ -29,24 +28,8 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
-      
-      {/* Barra lateral de navegación izquierda */}
-      <Sidebar />
-
-      {/* Contenedor del contenido principal */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        
-        {/* Cabecera superior */}
-        <Header user={perfil} />
-
-        {/* Zona de renderizado de páginas internas */}
-        <main className="flex-1 overflow-y-auto bg-slate-50 p-6 md:p-8">
-          {children}
-        </main>
-
-      </div>
-
-    </div>
+    <LayoutShell perfil={perfil}>
+      {children}
+    </LayoutShell>
   );
 }

@@ -398,26 +398,26 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
         </div>
 
         {/* Navegador Quincenal */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-white">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-white w-full sm:w-auto justify-between sm:justify-start">
             <button 
               onClick={() => navigateTime('prev')}
-              className="p-2 hover:bg-slate-50 text-slate-600 transition-colors border-r border-slate-200 cursor-pointer"
+              className="p-2 hover:bg-slate-50 text-slate-600 transition-colors border-r border-slate-200 cursor-pointer flex-shrink-0"
             >
               <ChevronLeft size={16} />
             </button>
-            <span className="text-xs font-bold text-slate-700 px-4 min-w-[140px] text-center">
+            <span className="text-xs font-bold text-slate-700 px-4 min-w-[140px] text-center flex-1 sm:flex-none">
               {getFormatDateTitle()}
             </span>
             <button 
               onClick={() => navigateTime('next')}
-              className="p-2 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+              className="p-2 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer flex-shrink-0"
             >
               <ChevronRight size={16} />
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5 border border-slate-200 bg-white px-3 py-1 rounded-xl">
+          <div className="flex items-center gap-1.5 border border-slate-200 bg-white px-3 py-1 rounded-xl w-full sm:w-auto justify-center sm:justify-start">
             <Calendar size={14} className="text-slate-400" />
             <input 
               type="date"

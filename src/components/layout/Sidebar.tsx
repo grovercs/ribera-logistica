@@ -10,15 +10,18 @@ import {
   MailCheck, 
   Settings, 
   LogOut,
-  ChevronRight
+  ChevronRight,
+  X
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
   onLogout?: () => void;
 }
 
-export default function Sidebar({ onLogout }: SidebarProps) {
+export default function Sidebar({ isOpen = false, onClose, onLogout }: SidebarProps) {
   const pathname = usePathname();
   const supabase = createClient();
 
@@ -64,13 +67,37 @@ export default function Sidebar({ onLogout }: SidebarProps) {
   };
 
   return (
-    <aside className="w-68 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-full font-sans">
-      
-      {/* Cabecera / Logo */}
-      <div className="p-5 border-b border-slate-800 flex flex-col items-center justify-center bg-slate-950/20">
-        <img src="/logo-ribera.png" alt="Logística Ribera" className="max-h-12 w-auto object-contain" />
-        <span className="text-[9px] text-slate-500 font-bold tracking-widest uppercase mt-2.5">Panel de Logística</span>
-      </div>
+    <>
+      {/* Máscara de fondo oscura al estar abierto en móvil */}
+      {isOpen && (
+        <div 
+          onClick={onClose}
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
+          title="Cerrar menú"
+        />
+      )}
+
+      <aside 
+        className={`w-68 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-full font-sans fixed inset-y-0 left-0 z-50 transform md:relative md:translate-x-0 transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        
+        {/* Cabecera / Logo */}
+        <div className="p-5 border-b border-slate-800 flex flex-col items-center justify-center bg-slate-950/20 relative">
+          <img src="/logo-ribera.png" alt="Logística Ribera" className="max-h-12 w-auto object-contain" />
+          <span className="text-[9px] text-slate-500 font-bold tracking-widest uppercase mt-2.5">Panel de Logística</span>
+          
+          {/* Botón para cerrar en móvil */}
+          <button 
+            type="button"
+            onClick={onClose}
+            className="absolute right-4 top-4 p-1 text-slate-400 hover:text-slate-200 md:hidden rounded-lg hover:bg-slate-800 transition-colors"
+            title="Cerrar menú"
+          >
+            <X size={16} />
+          </button>
+        </div>
 
       {/* Navegación */}
       <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
@@ -140,6 +167,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
         </button>
       </div>
 
-    </aside>
+     </aside>
+    </>
   );
 }
