@@ -154,14 +154,14 @@ async function sync() {
     }
 
     // ==========================================
-    // 2. SINCRONIZACIÓN DE PRESUPUESTOS (Últimos 5000 Registros)
+    // 2. SINCRONIZACIÓN DE PRESUPUESTOS (Último Trimestre - 90 días)
     // ==========================================
-    console.log("\n--- SINCRONIZANDO PRESUPUESTOS (5000 MÁS RECIENTES) ---");
-    console.log("Obteniendo presupuestos recientes de SQL Server...");
+    console.log("\n--- SINCRONIZANDO PRESUPUESTOS (ÚLTIMO TRIMESTRE) ---");
+    console.log("Buscando presupuestos de los últimos 90 días...");
     
-    // Obtener las cabeceras de los 5000 presupuestos más recientes
-    const crmPresupuestosResult = await crmPool.request().query(`
-      SELECT TOP 5000
+    // Consulta principal: últimos 90 días
+    let presupuestosQuery = `
+      SELECT 
         cod_venta, 
         cod_documento, 
         cod_cliente, 
@@ -176,36 +176,69 @@ async function sync() {
         fecha_venta,
         COALESCE(importe_impuestos, importe, 0) AS total
       FROM ventas_cabecera
-      WHERE cod_venta IS NOT NULL AND cod_venta > 0
+      WHERE fecha_venta >= DATEADD(day, -90, GETDATE())
+        AND cod_venta IS NOT NULL AND cod_venta > 0
       ORDER BY fecha_venta DESC, cod_venta DESC
-    `);
+    `;
 
-    const presupuestos = crmPresupuestosResult.recordset;
-    console.log(`Obtenidos ${presupuestos.length} presupuestos desde SQL Server.`);
+    let crmPresupuestosResult = await crmPool.request().query(presupuestosQuery);
+    let presupuestos = crmPresupuestosResult.recordset;
 
-    // Obtener las líneas de artículos asociadas a esos 5000 presupuestos
-    console.log("Obteniendo líneas de artículos asociadas...");
-    const crmLineasResult = await crmPool.request().query(`
-      SELECT 
-        vl.cod_venta, 
-        vl.cod_articulo, 
-        vl.descripcion, 
-        vl.cantidad, 
-        vl.precio, 
-        vl.importe
-      FROM ventas_linea vl
-      INNER JOIN (
-        SELECT TOP 5000 cod_venta 
-        FROM ventas_cabecera 
+    // Fallback: Si da 0 (como en base de datos local de desarrollo histórica), 
+    // traemos los últimos 100 presupuestos del histórico para poder realizar pruebas.
+    let isFallback = false;
+    if (presupuestos.length === 0) {
+      console.log("No se encontraron presupuestos en los últimos 90 días.");
+      console.log("Aplicando fallback: Obteniendo los 100 presupuestos más recientes del histórico...");
+      
+      presupuestosQuery = `
+        SELECT TOP 100
+          cod_venta, 
+          cod_documento, 
+          cod_cliente, 
+          nombre_comercial, 
+          cif, 
+          direccion1, 
+          cp, 
+          poblacion, 
+          provincia, 
+          telefono, 
+          e_mail,
+          fecha_venta,
+          COALESCE(importe_impuestos, importe, 0) AS total
+        FROM ventas_cabecera
         WHERE cod_venta IS NOT NULL AND cod_venta > 0
         ORDER BY fecha_venta DESC, cod_venta DESC
-      ) vc ON vl.cod_venta = vc.cod_venta
-    `);
+      `;
+      crmPresupuestosResult = await crmPool.request().query(presupuestosQuery);
+      presupuestos = crmPresupuestosResult.recordset;
+      isFallback = true;
+    }
 
-    const lineas = crmLineasResult.recordset;
-    console.log(`Obtenidas ${lineas.length} líneas de artículos desde SQL Server.`);
+    console.log(`Obtenidos ${presupuestos.length} presupuestos desde SQL Server ${isFallback ? '(Modo Fallback)' : '(Último Trimestre)'}.`);
 
-    // Limpiar presupuestos antiguos en Supabase antes de la inserción para refrescar la caché
+    // Obtener las líneas de artículos asociadas a los presupuestos seleccionados
+    let lineas = [];
+    if (presupuestos.length > 0) {
+      console.log("Obteniendo líneas de artículos asociadas...");
+      const codigosVenta = presupuestos.map(p => p.cod_venta);
+      
+      const crmLineasResult = await crmPool.request().query(`
+        SELECT 
+          cod_venta, 
+          cod_articulo, 
+          descripcion, 
+          cantidad, 
+          precio, 
+          importe
+        FROM ventas_linea
+        WHERE cod_venta IN (${codigosVenta.join(',')})
+      `);
+      lineas = crmLineasResult.recordset;
+      console.log(`Obtenidas ${lineas.length} líneas de artículos desde SQL Server.`);
+    }
+
+    // Limpiar presupuestos antiguos en Supabase antes de la inserción
     console.log("Limpiando caché de presupuestos en Supabase...");
     await pgClient.query("TRUNCATE public.presupuestos_crm_cache CASCADE");
 
