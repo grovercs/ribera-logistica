@@ -32,7 +32,7 @@ if (!configCrm.user || !configCrm.password) {
   process.exit(1);
 }
 
-// Adaptar la URL de Supabase para el Pooler IPv4 si es necesario (copiado de migrate.js)
+// Adaptar la URL de Supabase para el Pooler IPv4 si es necesario
 let cleanConnectionString = pgConnectionString.replace(/^"|"$/g, '');
 try {
   const url = new URL(cleanConnectionString);
@@ -54,19 +54,28 @@ const pgPool = new Pool({
 });
 
 async function sync() {
-  console.log("=== INICIANDO SINCRONIZACIÓN DE CLIENTES CRM ===");
+  console.log("=== INICIANDO SINCRONIZACIÓN CRM A SUPABASE ===");
   console.log(`Fecha/Hora: ${new Date().toISOString()}`);
 
   let crmPool;
+  let pgClient;
   try {
     // Conectar a SQL Server
     console.log(`Conectando a SQL Server local (${configCrm.server})...`);
     crmPool = await sql.connect(configCrm);
     console.log("✓ Conexión con SQL Server establecida.");
 
-    // Consultar todos los clientes en SQL Server
+    // Conectar a Supabase
+    console.log("Estableciendo conexión con Supabase...");
+    pgClient = await pgPool.connect();
+    console.log("✓ Conectado a Supabase.");
+
+    // ==========================================
+    // 1. SINCRONIZACIÓN DE CLIENTES (Upsert Masivo)
+    // ==========================================
+    console.log("\n--- SINCRONIZANDO CLIENTES ---");
     console.log("Obteniendo clientes del CRM local...");
-    const crmResult = await crmPool.request().query(`
+    const crmClientesResult = await crmPool.request().query(`
       SELECT 
         cod_cliente, 
         cif, 
@@ -84,85 +93,226 @@ async function sync() {
       WHERE cod_cliente IS NOT NULL AND cod_cliente > 0
     `);
 
-    const clientes = crmResult.recordset;
-    console.log(`✓ Obtenidos ${clientes.length} clientes desde SQL Server.`);
+    const clientes = crmClientesResult.recordset;
+    console.log(`Obtenidos ${clientes.length} clientes desde SQL Server.`);
 
-    if (clientes.length === 0) {
-      console.log("No hay clientes para sincronizar.");
-      return;
-    }
+    if (clientes.length > 0) {
+      const batchSize = 500;
+      console.log(`Iniciando Upsert de clientes en lotes de ${batchSize}...`);
 
-    // Conectar a Supabase
-    console.log("Estableciendo conexión con Supabase...");
-    const pgClient = await pgPool.connect();
-    console.log("✓ Conectado a Supabase.");
-
-    // Sincronizar por lotes (batch) para evitar saturación y límites de parámetros en Postgres
-    const batchSize = 500;
-    console.log(`Iniciando Upsert de clientes en lotes de ${batchSize}...`);
-
-    for (let i = 0; i < clientes.length; i += batchSize) {
-      const batch = clientes.slice(i, i + batchSize);
-      
-      // Construir la consulta de inserción masiva
-      const values = [];
-      const placeholders = [];
-      
-      batch.forEach((c, index) => {
-        const baseIndex = index * 10;
-        const nombre = (c.nombre_comercial || c.razon_social || '').trim();
-        const razonSocial = (c.razon_social || '').trim();
-        const direccion = `${(c.direccion1 || '').trim()} ${(c.direccion2 || '').trim()}`.trim();
-        const telefono = (c.telefono || c.telefono2 || '').trim();
+      for (let i = 0; i < clientes.length; i += batchSize) {
+        const batch = clientes.slice(i, i + batchSize);
+        const values = [];
+        const placeholders = [];
         
-        values.push(
-          c.cod_cliente,
-          (c.cif || '').trim(),
-          nombre,
-          razonSocial,
-          direccion,
-          (c.poblacion || '').trim(),
-          (c.CP || '').trim(),
-          (c.provincia || '').trim(),
-          telefono,
-          (c.e_mail || '').trim()
-        );
+        batch.forEach((c, index) => {
+          const baseIndex = index * 10;
+          const nombre = (c.nombre_comercial || c.razon_social || '').trim();
+          const razonSocial = (c.razon_social || '').trim();
+          const direccion = `${(c.direccion1 || '').trim()} ${(c.direccion2 || '').trim()}`.trim();
+          const telefono = (c.telefono || c.telefono2 || '').trim();
+          
+          values.push(
+            c.cod_cliente,
+            (c.cif || '').trim(),
+            nombre,
+            razonSocial,
+            direccion,
+            (c.poblacion || '').trim(),
+            (c.CP || '').trim(),
+            (c.provincia || '').trim(),
+            telefono,
+            (c.e_mail || '').trim()
+          );
 
-        placeholders.push(`($${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, $${baseIndex + 7}, $${baseIndex + 8}, $${baseIndex + 9}, $${baseIndex + 10})`);
-      });
+          placeholders.push(`($${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, $${baseIndex + 7}, $${baseIndex + 8}, $${baseIndex + 9}, $${baseIndex + 10})`);
+        });
 
-      const queryText = `
-        INSERT INTO public.clientes_crm_cache (
-          codigo_cliente, cif, nombre, razon_social, direccion, poblacion, cod_postal, provincia, telefono, email
-        )
-        VALUES ${placeholders.join(', ')}
-        ON CONFLICT (codigo_cliente) 
-        DO UPDATE SET
-          cif = EXCLUDED.cif,
-          nombre = EXCLUDED.nombre,
-          razon_social = EXCLUDED.razon_social,
-          direccion = EXCLUDED.direccion,
-          poblacion = EXCLUDED.poblacion,
-          cod_postal = EXCLUDED.cod_postal,
-          provincia = EXCLUDED.provincia,
-          telefono = EXCLUDED.telefono,
-          email = EXCLUDED.email,
-          creado_en = now()
-      `;
+        const queryText = `
+          INSERT INTO public.clientes_crm_cache (
+            codigo_cliente, cif, nombre, razon_social, direccion, poblacion, cod_postal, provincia, telefono, email
+          )
+          VALUES ${placeholders.join(', ')}
+          ON CONFLICT (codigo_cliente) 
+          DO UPDATE SET
+            cif = EXCLUDED.cif,
+            nombre = EXCLUDED.nombre,
+            razon_social = EXCLUDED.razon_social,
+            direccion = EXCLUDED.direccion,
+            poblacion = EXCLUDED.poblacion,
+            cod_postal = EXCLUDED.cod_postal,
+            provincia = EXCLUDED.provincia,
+            telefono = EXCLUDED.telefono,
+            email = EXCLUDED.email,
+            creado_en = now()
+        `;
 
-      await pgClient.query(queryText, values);
-      console.log(`- Procesados ${i + batch.length} de ${clientes.length} clientes...`);
+        await pgClient.query(queryText, values);
+        console.log(`- Procesados ${i + batch.length} de ${clientes.length} clientes...`);
+      }
+      console.log("✓ Sincronización de clientes completada.");
     }
 
-    pgClient.release();
-    console.log("✓ Sincronización finalizada correctamente.");
+    // ==========================================
+    // 2. SINCRONIZACIÓN DE PRESUPUESTOS (Últimos 5000 Registros)
+    // ==========================================
+    console.log("\n--- SINCRONIZANDO PRESUPUESTOS (5000 MÁS RECIENTES) ---");
+    console.log("Obteniendo presupuestos recientes de SQL Server...");
+    
+    // Obtener las cabeceras de los 5000 presupuestos más recientes
+    const crmPresupuestosResult = await crmPool.request().query(`
+      SELECT TOP 5000
+        cod_venta, 
+        cod_documento, 
+        cod_cliente, 
+        nombre_comercial, 
+        cif, 
+        direccion1, 
+        cp, 
+        poblacion, 
+        provincia, 
+        telefono, 
+        e_mail,
+        fecha_venta,
+        COALESCE(importe_impuestos, importe, 0) AS total
+      FROM ventas_cabecera
+      WHERE cod_venta IS NOT NULL AND cod_venta > 0
+      ORDER BY fecha_venta DESC, cod_venta DESC
+    `);
+
+    const presupuestos = crmPresupuestosResult.recordset;
+    console.log(`Obtenidos ${presupuestos.length} presupuestos desde SQL Server.`);
+
+    // Obtener las líneas de artículos asociadas a esos 5000 presupuestos
+    console.log("Obteniendo líneas de artículos asociadas...");
+    const crmLineasResult = await crmPool.request().query(`
+      SELECT 
+        vl.cod_venta, 
+        vl.cod_articulo, 
+        vl.descripcion, 
+        vl.cantidad, 
+        vl.precio, 
+        vl.importe
+      FROM ventas_linea vl
+      INNER JOIN (
+        SELECT TOP 5000 cod_venta 
+        FROM ventas_cabecera 
+        WHERE cod_venta IS NOT NULL AND cod_venta > 0
+        ORDER BY fecha_venta DESC, cod_venta DESC
+      ) vc ON vl.cod_venta = vc.cod_venta
+    `);
+
+    const lineas = crmLineasResult.recordset;
+    console.log(`Obtenidas ${lineas.length} líneas de artículos desde SQL Server.`);
+
+    // Limpiar presupuestos antiguos en Supabase antes de la inserción para refrescar la caché
+    console.log("Limpiando caché de presupuestos en Supabase...");
+    await pgClient.query("TRUNCATE public.presupuestos_crm_cache CASCADE");
+
+    if (presupuestos.length > 0) {
+      console.log("Insertando cabeceras de presupuestos en Supabase...");
+      
+      const batchSize = 100;
+      for (let i = 0; i < presupuestos.length; i += batchSize) {
+        const batch = presupuestos.slice(i, i + batchSize);
+        const values = [];
+        const placeholders = [];
+
+        batch.forEach((p, index) => {
+          const baseIndex = index * 13;
+          values.push(
+            p.cod_venta,
+            p.cod_documento ? p.cod_documento.trim() : null,
+            p.cod_cliente,
+            p.nombre_comercial ? p.nombre_comercial.trim() : null,
+            p.cif ? p.cif.trim() : null,
+            p.direccion1 ? p.direccion1.trim() : null,
+            p.poblacion ? p.poblacion.trim() : null,
+            p.cp ? p.cp.trim() : null,
+            p.provincia ? p.provincia.trim() : null,
+            p.telefono ? p.telefono.trim() : null,
+            p.e_mail ? p.e_mail.trim() : null,
+            p.fecha_venta,
+            Number(p.total) || 0
+          );
+
+          placeholders.push(`($${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, $${baseIndex + 7}, $${baseIndex + 8}, $${baseIndex + 9}, $${baseIndex + 10}, $${baseIndex + 11}, $${baseIndex + 12}, $${baseIndex + 13})`);
+        });
+
+        const queryText = `
+          INSERT INTO public.presupuestos_crm_cache (
+            cod_venta, cod_documento, cliente_id, nombre_cliente, cif, direccion, poblacion, cod_postal, provincia, telefono, email, fecha_venta, total
+          )
+          VALUES ${placeholders.join(', ')}
+          ON CONFLICT (cod_venta) 
+          DO UPDATE SET
+            cod_documento = EXCLUDED.cod_documento,
+            cliente_id = EXCLUDED.cliente_id,
+            nombre_cliente = EXCLUDED.nombre_cliente,
+            cif = EXCLUDED.cif,
+            direccion = EXCLUDED.direccion,
+            poblacion = EXCLUDED.poblacion,
+            cod_postal = EXCLUDED.cod_postal,
+            provincia = EXCLUDED.provincia,
+            telefono = EXCLUDED.telefono,
+            email = EXCLUDED.email,
+            fecha_venta = EXCLUDED.fecha_venta,
+            total = EXCLUDED.total,
+            creado_en = now()
+        `;
+
+        await pgClient.query(queryText, values);
+      }
+      console.log(`✓ ${presupuestos.length} cabeceras de presupuestos guardadas.`);
+    }
+
+    if (lineas.length > 0) {
+      console.log("Insertando líneas de materiales en Supabase...");
+      
+      const batchSize = 300;
+      for (let i = 0; i < lineas.length; i += batchSize) {
+        const batch = lineas.slice(i, i + batchSize);
+        const values = [];
+        const placeholders = [];
+
+        batch.forEach((l, index) => {
+          const baseIndex = index * 5;
+          values.push(
+            l.cod_venta,
+            l.cod_articulo ? l.cod_articulo.trim() : '0000',
+            l.descripcion ? l.descripcion.trim() : '',
+            Number(l.precio) || 0,
+            Number(l.cantidad) || 1
+          );
+
+          placeholders.push(`($${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5})`);
+        });
+
+        const queryText = `
+          INSERT INTO public.presupuestos_materiales_crm_cache (
+            presupuesto_id, codigo, descripcion, precio, cantidad
+          )
+          VALUES ${placeholders.join(', ')}
+        `;
+
+        await pgClient.query(queryText, values);
+      }
+      console.log(`✓ ${lineas.length} líneas de materiales guardadas.`);
+    }
+
+    console.log("\n==========================================");
+    console.log("✓ SINCRONIZACIÓN COMPLETA FINALIZADA CON ÉXITO.");
+    console.log("==========================================");
 
   } catch (error) {
-    console.error("❌ ERROR DURANTE LA SINCRONIZACIÓN:", error);
+    console.error("\n❌ ERROR DURANTE LA SINCRONIZACIÓN:", error);
     process.exit(1);
   } finally {
     if (crmPool) {
       await sql.close();
+    }
+    if (pgClient) {
+      pgClient.release();
     }
     await pgPool.end();
   }

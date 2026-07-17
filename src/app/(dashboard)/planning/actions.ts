@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { getCrmDbConnection } from '@/lib/crm-db';
 
 // Interfaz para el guardado de materiales
 interface MaterialInput {
@@ -223,53 +222,53 @@ export async function eliminarServicio(id: number) {
 }
 
 /**
- * Busca clientes directamente en la base de datos de SQL Server del CRM Integral en vivo
+ * Busca clientes directamente en la base de datos de caché de Supabase
  */
 export async function buscarClientesCRM(query: string) {
   if (!query || query.trim().length < 2) return [];
 
   try {
-    const pool = await getCrmDbConnection();
-    
-    // Preparar el parámetro de búsqueda
-    const likeQuery = `%${query.trim()}%`;
-    const numQuery = isNaN(Number(query.trim())) ? -1 : Number(query.trim());
+    const supabase = await createClient();
+    const queryTerm = query.trim();
+    const numQuery = isNaN(Number(queryTerm)) ? -1 : Number(queryTerm);
 
-    const request = pool.request();
-    request.input('likeQuery', likeQuery);
-    request.input('numQuery', numQuery);
+    let filter = supabase
+      .from('clientes_crm_cache')
+      .select('codigo_cliente, nombre, cif, direccion, poblacion, telefono, email');
 
-    const result = await request.query(`
-      SELECT TOP 10 cod_cliente, nombre_comercial, cif, direccion1, poblacion, telefono, e_mail
-      FROM clientes
-      WHERE nombre_comercial LIKE @likeQuery
-         OR cod_cliente = @numQuery
-         OR cif LIKE @likeQuery
-      ORDER BY nombre_comercial
-    `);
+    if (numQuery !== -1) {
+      filter = filter.or(`nombre.ilike.%${queryTerm}%,cif.ilike.%${queryTerm}%,codigo_cliente.eq.${numQuery}`);
+    } else {
+      filter = filter.or(`nombre.ilike.%${queryTerm}%,cif.ilike.%${queryTerm}%`);
+    }
 
-    // Mapear los datos de SQL Server al formato que espera el frontend
-    return result.recordset.map(row => ({
-      codigo_cliente: row.cod_cliente,
-      nombre: row.nombre_comercial ? row.nombre_comercial.trim() : '',
-      cif: row.cif ? row.cif.trim() : '',
-      direccion: row.direccion1 ? row.direccion1.trim() : '',
-      poblacion: row.poblacion ? row.poblacion.trim() : '',
+    const { data, error } = await filter
+      .order('nombre', { ascending: true })
+      .limit(15);
+
+    if (error) throw error;
+
+    return (data || []).map(row => ({
+      codigo_cliente: row.codigo_cliente,
+      nombre: row.nombre || '',
+      cif: row.cif || '',
+      direccion: row.direccion || '',
+      poblacion: row.poblacion || '',
       cod_postal: '',
       provincia: '',
-      telefono: row.telefono ? row.telefono.trim() : '',
-      email: row.e_mail ? row.e_mail.trim() : '',
+      telefono: row.telefono || '',
+      email: row.email || '',
       nombre_contacto: '',
       telefono_contacto: ''
     }));
   } catch (error) {
-    console.error("Error al buscar clientes en SQL Server:", error);
+    console.error("Error al buscar clientes en Supabase caché:", error);
     return [];
   }
 }
 
 /**
- * Busca un presupuesto o documento de venta en vivo en SQL Server y devuelve su cabecera y líneas de artículos
+ * Busca un presupuesto o documento de venta en Supabase y devuelve su cabecera y líneas de artículos
  */
 export async function buscarPresupuestoCRM(numDocumento: string) {
   if (!numDocumento || numDocumento.trim().length < 2) {
@@ -277,63 +276,90 @@ export async function buscarPresupuestoCRM(numDocumento: string) {
   }
 
   try {
-    const pool = await getCrmDbConnection();
+    const supabase = await createClient();
     const queryTerm = numDocumento.trim();
     const numQuery = isNaN(Number(queryTerm)) ? -1 : Number(queryTerm);
 
-    const request = pool.request();
-    request.input('queryTerm', `%${queryTerm}%`);
-    request.input('numQuery', numQuery);
+    let query = supabase
+      .from('presupuestos_crm_cache')
+      .select('*');
 
-    // Buscar cabecera
-    const resCab = await request.query(`
-      SELECT TOP 1 cod_venta, tipo_venta, cod_documento, cod_cliente, nombre_comercial, cif, direccion1, cp, poblacion, provincia, telefono, e_mail
-      FROM ventas_cabecera
-      WHERE cod_venta = @numQuery
-         OR cod_documento LIKE @queryTerm
-    `);
-
-    if (resCab.recordset.length === 0) {
-      return { error: "No se encontró ningún presupuesto o documento con ese número en el Integral." };
+    if (numQuery !== -1) {
+      query = query.or(`cod_documento.ilike.%${queryTerm}%,cod_venta.eq.${numQuery}`);
+    } else {
+      query = query.ilike('cod_documento', `%${queryTerm}%`);
     }
 
-    const cab = resCab.recordset[0];
+    const { data: cabeceras, error: errorCab } = await query.limit(1);
 
-    // Buscar líneas de artículos/materiales
-    const reqLines = pool.request();
-    reqLines.input('codVenta', cab.cod_venta);
-    const resLines = await reqLines.query(`
-      SELECT cod_articulo, descripcion, cantidad, precio, importe
-      FROM ventas_linea
-      WHERE cod_venta = @codVenta
-      ORDER BY linea
-    `);
+    if (errorCab) throw errorCab;
+
+    if (!cabeceras || cabeceras.length === 0) {
+      return { error: "No se encontró ningún presupuesto o documento con ese número en la caché." };
+    }
+
+    const cab = cabeceras[0];
+
+    const { data: lineas, error: errorLines } = await supabase
+      .from('presupuestos_materiales_crm_cache')
+      .select('codigo, descripcion, precio, cantidad')
+      .eq('presupuesto_id', cab.cod_venta);
+
+    if (errorLines) throw errorLines;
 
     return {
       success: true,
       documento: {
         cod_venta: cab.cod_venta,
-        cod_documento: cab.cod_documento ? cab.cod_documento.trim() : '',
-        cliente_id: cab.cod_cliente,
-        nombre_cliente: cab.nombre_comercial ? cab.nombre_comercial.trim() : '',
-        cif: cab.cif ? cab.cif.trim() : '',
-        direccion: cab.direccion1 ? cab.direccion1.trim() : '',
-        poblacion: cab.poblacion ? cab.poblacion.trim() : '',
-        cod_postal: cab.cp ? cab.cp.trim() : '',
-        provincia: cab.provincia ? cab.provincia.trim() : '',
-        telefono: cab.telefono ? cab.telefono.trim() : '',
-        email: cab.e_mail ? cab.e_mail.trim() : ''
+        cod_documento: cab.cod_documento || '',
+        cliente_id: cab.cliente_id,
+        nombre_cliente: cab.nombre_cliente || '',
+        cif: cab.cif || '',
+        direccion: cab.direccion || '',
+        poblacion: cab.poblacion || '',
+        cod_postal: cab.cod_postal || '',
+        provincia: cab.provincia || '',
+        telefono: cab.telefono || '',
+        email: cab.email || ''
       },
-      materiales: resLines.recordset.map(l => ({
-        codigo: l.cod_articulo ? l.cod_articulo.trim() : '0000',
-        descripcion: l.descripcion ? l.descripcion.trim() : '',
+      materiales: (lineas || []).map(l => ({
+        codigo: l.codigo || '0000',
+        descripcion: l.descripcion || '',
         precio: Number(l.precio) || 0,
         cantidad: Number(l.cantidad) || 1
       }))
     };
   } catch (error: any) {
-    console.error("Error al buscar presupuesto en SQL Server:", error);
-    return { error: error.message || "Error al conectar con el CRM Integral." };
+    console.error("Error al buscar presupuesto en Supabase caché:", error);
+    return { error: error.message || "Error al conectar con Supabase." };
+  }
+}
+
+/**
+ * Obtiene los presupuestos recientes de un cliente en particular desde Supabase
+ */
+export async function obtenerPresupuestosClienteCRM(clienteId: number) {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('presupuestos_crm_cache')
+      .select('cod_venta, cod_documento, fecha_venta, total')
+      .eq('cliente_id', clienteId)
+      .order('fecha_venta', { ascending: false })
+      .order('cod_venta', { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+
+    return (data || []).map(row => ({
+      cod_venta: row.cod_venta,
+      cod_documento: row.cod_documento || '',
+      fecha: row.fecha_venta ? new Date(row.fecha_venta).toLocaleDateString('es-ES') : '',
+      total: Number(row.total) || 0
+    }));
+  } catch (error) {
+    console.error("Error al obtener presupuestos del cliente desde Supabase:", error);
+    return [];
   }
 }
 
@@ -377,31 +403,4 @@ export async function obtenerSiguienteCodigoServicio(tiendaId: number) {
   }
 }
 
-/**
- * Obtiene los presupuestos recientes de un cliente en particular desde SQL Server
- */
-export async function obtenerPresupuestosClienteCRM(clienteId: number) {
-  try {
-    const pool = await getCrmDbConnection();
-    const request = pool.request();
-    request.input('clienteId', clienteId);
 
-    const result = await request.query(`
-      SELECT TOP 10 cod_venta, cod_documento, fecha_venta,
-             COALESCE(importe_impuestos, importe, 0) AS total
-      FROM ventas_cabecera
-      WHERE cod_cliente = @clienteId
-      ORDER BY fecha_venta DESC, cod_venta DESC
-    `);
-
-    return result.recordset.map(row => ({
-      cod_venta: row.cod_venta,
-      cod_documento: row.cod_documento ? row.cod_documento.trim() : '',
-      fecha: row.fecha_venta ? new Date(row.fecha_venta).toLocaleDateString('es-ES') : '',
-      total: Number(row.total) || 0
-    }));
-  } catch (error) {
-    console.error("Error al obtener presupuestos del cliente:", error);
-    return [];
-  }
-}
