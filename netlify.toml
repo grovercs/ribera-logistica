@@ -1,0 +1,6 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+# Nota: Netlify detecta automáticamente la configuración de Next.js.
+# Si en algún momento necesitas configurar redirecciones o cabeceras adicionales, se pueden declarar aquí.

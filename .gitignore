@@ -49,6 +49,7 @@ ribera.sql
 !eslint.config.mjs
 !postcss.config.mjs
 !next.config.ts
+!sync-crm.js
 
 # large images/resources
 /imagenes/
