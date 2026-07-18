@@ -8,6 +8,14 @@ interface EmpleadoInput {
   nombre: string;
   telefono: string | null;
   activo: boolean;
+  tipo: string;
+  razon_social: string | null;
+  cif_nif: string | null;
+  direccion_fiscal: string | null;
+  tecnico_autorizado: string | null;
+  email: string | null;
+  iban: string | null;
+  tarifa_hora: number;
 }
 
 /**
@@ -24,7 +32,15 @@ export async function guardarEmpleado(data: EmpleadoInput) {
     const payload = {
       nombre: data.nombre.trim(),
       telefono: data.telefono ? data.telefono.trim() : null,
-      activo: data.activo
+      activo: data.activo,
+      tipo: data.tipo,
+      razon_social: data.razon_social ? data.razon_social.trim() : null,
+      cif_nif: data.cif_nif ? data.cif_nif.trim() : null,
+      direccion_fiscal: data.direccion_fiscal ? data.direccion_fiscal.trim() : null,
+      tecnico_autorizado: data.tecnico_autorizado ? data.tecnico_autorizado.trim() : null,
+      email: data.email ? data.email.trim() : null,
+      iban: data.iban ? data.iban.trim() : null,
+      tarifa_hora: data.tarifa_hora
     };
 
     if (data.id) {

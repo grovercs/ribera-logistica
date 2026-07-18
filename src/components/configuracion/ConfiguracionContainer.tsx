@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Edit2, CheckCircle2, XCircle, Phone, UserPlus, Settings, Building2, Store } from 'lucide-react';
+import { Plus, Edit2, CheckCircle2, XCircle, Phone, UserPlus, Settings, Store, Euro, Landmark, Building2 } from 'lucide-react';
 import { guardarEmpleado, toggleEmpleadoActivo } from '@/app/(dashboard)/configuracion/actions';
 import ConfirmDialog from '../ui/ConfirmDialog';
 
@@ -10,6 +10,14 @@ interface Empleado {
   nombre: string;
   telefono: string | null;
   activo: boolean;
+  tipo: string;
+  razon_social: string | null;
+  cif_nif: string | null;
+  direccion_fiscal: string | null;
+  tecnico_autorizado: string | null;
+  email: string | null;
+  iban: string | null;
+  tarifa_hora: number | string;
 }
 
 interface Tienda {
@@ -31,10 +39,20 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [modalTitle, setModalTitle] = useState('Nuevo Técnico');
+  
+  // Estados formulario
   const [empId, setEmpId] = useState<number | undefined>(undefined);
   const [empNombre, setEmpNombre] = useState('');
   const [empTelefono, setEmpTelefono] = useState('');
   const [empActivo, setEmpActivo] = useState(true);
+  const [empTipo, setEmpTipo] = useState('interno');
+  const [empRazonSocial, setEmpRazonSocial] = useState('');
+  const [empCifNif, setEmpCifNif] = useState('');
+  const [empDireccionFiscal, setEmpDireccionFiscal] = useState('');
+  const [empTecnicoAutorizado, setEmpTecnicoAutorizado] = useState('');
+  const [empEmail, setEmpEmail] = useState('');
+  const [empIban, setEmpIban] = useState('');
+  const [empTarifaHora, setEmpTarifaHora] = useState<string>('0.00');
 
   // Técnico pendiente de (des)activar, esperando confirmación del usuario
   const [pendingToggle, setPendingToggle] = useState<Empleado | null>(null);
@@ -42,7 +60,8 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
 
   // Refrescar lista de operarios
   const refreshList = async () => {
-    const supabase = require('@/lib/supabase/client').createClient();
+    const { createClient } = require('@/lib/supabase/client');
+    const supabase = createClient();
     const { data: emps } = await supabase.from('empleados').select('*').order('nombre');
     if (emps) setEmpleados(emps);
   };
@@ -52,6 +71,14 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
     setEmpNombre('');
     setEmpTelefono('');
     setEmpActivo(true);
+    setEmpTipo('interno');
+    setEmpRazonSocial('');
+    setEmpCifNif('');
+    setEmpDireccionFiscal('');
+    setEmpTecnicoAutorizado('');
+    setEmpEmail('');
+    setEmpIban('');
+    setEmpTarifaHora('0.00');
     setModalTitle('Registrar Nuevo Técnico');
     setIsModalOpen(true);
   };
@@ -61,6 +88,14 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
     setEmpNombre(emp.nombre);
     setEmpTelefono(emp.telefono || '');
     setEmpActivo(emp.activo);
+    setEmpTipo(emp.tipo || 'interno');
+    setEmpRazonSocial(emp.razon_social || '');
+    setEmpCifNif(emp.cif_nif || '');
+    setEmpDireccionFiscal(emp.direccion_fiscal || '');
+    setEmpTecnicoAutorizado(emp.tecnico_autorizado || '');
+    setEmpEmail(emp.email || '');
+    setEmpIban(emp.iban || '');
+    setEmpTarifaHora(Number(emp.tarifa_hora || 0).toFixed(2));
     setModalTitle('Editar Datos del Técnico');
     setIsModalOpen(true);
   };
@@ -77,7 +112,15 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
       id: empId,
       nombre: empNombre,
       telefono: empTelefono || null,
-      activo: empActivo
+      activo: empActivo,
+      tipo: empTipo,
+      razon_social: empTipo !== 'interno' ? empRazonSocial || null : null,
+      cif_nif: empTipo !== 'interno' ? empCifNif || null : null,
+      direccion_fiscal: empTipo !== 'interno' ? empDireccionFiscal || null : null,
+      tecnico_autorizado: empTipo !== 'interno' ? empTecnicoAutorizado || null : null,
+      email: empTipo !== 'interno' ? empEmail || null : null,
+      iban: empTipo !== 'interno' ? empIban || null : null,
+      tarifa_hora: Number(empTarifaHora) || 0
     });
     setLoading(false);
 
@@ -150,7 +193,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
             <div className="bg-white p-4 border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Catálogo de Técnicos</h3>
-                <p className="text-[10px] text-slate-400 font-semibold">Administra el personal que realiza las entregas e instalaciones.</p>
+                <p className="text-[10px] text-slate-400 font-semibold">Administra técnicos de plantilla y empresas externas / autónomos colaboradores.</p>
               </div>
               <button
                 type="button"
@@ -169,8 +212,10 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                   <thead className="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
                     <tr>
                       <th className="px-5 py-3.5 w-16 text-center">ID</th>
-                      <th className="px-5 py-3.5">Nombre del Técnico</th>
-                      <th className="px-5 py-3.5 w-44">Teléfono</th>
+                      <th className="px-5 py-3.5">Nombre</th>
+                      <th className="px-5 py-3.5 w-32 text-center">Tipo</th>
+                      <th className="px-5 py-3.5 w-36">Teléfono</th>
+                      <th className="px-5 py-3.5 w-24 text-right">Tarifa/h</th>
                       <th className="px-5 py-3.5 w-28 text-center">Estado</th>
                       <th className="px-5 py-3.5 w-24 text-center">Acciones</th>
                     </tr>
@@ -178,7 +223,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                   <tbody className="divide-y divide-slate-100 text-slate-600 font-semibold">
                     {empleados.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-5 py-12 text-center text-slate-400 italic">
+                        <td colSpan={7} className="px-5 py-12 text-center text-slate-400 italic">
                           -- No hay técnicos registrados --
                         </td>
                       </tr>
@@ -186,7 +231,21 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                       empleados.map((emp) => (
                         <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
                           <td className="px-5 py-3.5 text-center text-slate-400 font-mono font-bold">{emp.id}</td>
-                          <td className="px-5 py-3.5 text-slate-900 font-bold text-sm">{emp.nombre}</td>
+                          <td className="px-5 py-3.5">
+                            <p className="text-slate-900 font-bold text-sm">{emp.nombre}</p>
+                            {emp.tipo !== 'interno' && emp.razon_social && (
+                              <p className="text-[10px] text-slate-400 font-medium leading-none mt-0.5">{emp.razon_social}</p>
+                            )}
+                          </td>
+                          <td className="px-5 py-3.5 text-center">
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                              emp.tipo === 'empresa_externa' ? 'bg-orange-50 text-orange-600 border border-orange-200' :
+                              emp.tipo === 'autonomo' ? 'bg-purple-50 text-purple-600 border border-purple-200' :
+                              'bg-blue-50 text-blue-600 border border-blue-200'
+                            }`}>
+                              {emp.tipo === 'empresa_externa' ? 'Empresa' : emp.tipo === 'autonomo' ? 'Autónomo' : 'Interno'}
+                            </span>
+                          </td>
                           <td className="px-5 py-3.5">
                             {emp.telefono ? (
                               <div className="flex items-center gap-1.5">
@@ -196,6 +255,9 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                             ) : (
                               <span className="text-slate-400 font-normal italic">--</span>
                             )}
+                          </td>
+                          <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-800 text-sm">
+                            {Number(emp.tarifa_hora || 0).toFixed(2)}€
                           </td>
                           <td className="px-5 py-3.5 text-center">
                             <button
@@ -278,40 +340,164 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
 
       {/* Modal Técnico (Editar/Crear) */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             
             <div className="px-5 py-4 bg-slate-900 text-white flex items-center gap-2">
               <UserPlus size={16} className="text-blue-400" />
               <h3 className="text-sm font-bold">{modalTitle}</h3>
             </div>
 
-            <form onSubmit={handleSave} className="p-5 space-y-4 flex-1">
+            <form onSubmit={handleSave} className="p-5 space-y-4 flex-1 overflow-y-auto">
               
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase block">Nombre del Técnico</label>
-                <input
-                  type="text"
-                  value={empNombre}
-                  onChange={(e) => setEmpNombre(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                  placeholder="Ej. GABY"
-                  required
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Tipo de Técnico */}
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Tipo de Técnico</label>
+                  <select
+                    value={empTipo}
+                    onChange={(e) => setEmpTipo(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  >
+                    <option value="interno">Técnico Interno (Plantilla)</option>
+                    <option value="autonomo">Autónomo Colaborador</option>
+                    <option value="empresa_externa">Empresa Externa Subcontratada</option>
+                  </select>
+                </div>
+
+                {/* Nombre de Ficha / Técnico */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Nombre de Ficha / Técnico *</label>
+                  <input
+                    type="text"
+                    value={empNombre}
+                    onChange={(e) => setEmpNombre(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    placeholder="Ej. GABY o INST. JUAN"
+                    required
+                  />
+                </div>
+
+                {/* Teléfono */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Teléfono de Contacto</label>
+                  <input
+                    type="text"
+                    value={empTelefono}
+                    onChange={(e) => setEmpTelefono(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    placeholder="Ej. 600 000 000"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase block">Teléfono de Contacto</label>
-                <input
-                  type="text"
-                  value={empTelefono}
-                  onChange={(e) => setEmpTelefono(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                  placeholder="Ej. +34 600 000 000"
-                />
+              {/* Sección Condicional: Empresa Externa o Autónomo */}
+              {empTipo !== 'interno' && (
+                <div className="pt-4 border-t border-slate-100 space-y-4">
+                  <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1.5">
+                    <Building2 size={12} />
+                    <span>Datos de Empresa / Facturación</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Razón Social */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block">Razón Social</label>
+                      <input
+                        type="text"
+                        value={empRazonSocial}
+                        onChange={(e) => setEmpRazonSocial(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        placeholder="Ej. Ribera Montajes S.L."
+                      />
+                    </div>
+
+                    {/* DNI / CIF */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block">CIF / NIF</label>
+                      <input
+                        type="text"
+                        value={empCifNif}
+                        onChange={(e) => setEmpCifNif(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        placeholder="Ej. B12345678"
+                      />
+                    </div>
+
+                    {/* Técnico / Persona Autorizada */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block">Técnico Autorizado (Contacto)</label>
+                      <input
+                        type="text"
+                        value={empTecnicoAutorizado}
+                        onChange={(e) => setEmpTecnicoAutorizado(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        placeholder="Ej. Carlos Gámez"
+                      />
+                    </div>
+
+                    {/* Email */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block">Email de Facturación / Contacto</label>
+                      <input
+                        type="email"
+                        value={empEmail}
+                        onChange={(e) => setEmpEmail(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        placeholder="Ej. facturas@empresa.com"
+                      />
+                    </div>
+
+                    {/* Dirección Fiscal */}
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block">Dirección Fiscal</label>
+                      <input
+                        type="text"
+                        value={empDireccionFiscal}
+                        onChange={(e) => setEmpDireccionFiscal(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        placeholder="Ej. Av. de la Ribera, 45, 2ºA, Lleida"
+                      />
+                    </div>
+
+                    {/* IBAN */}
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block flex items-center gap-1"><Landmark size={10} /><span>Cuenta Bancaria (IBAN)</span></label>
+                      <input
+                        type="text"
+                        value={empIban}
+                        onChange={(e) => setEmpIban(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        placeholder="ES21 0000 0000 0000 0000 0000"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Configuración Financiera (Tarifa pactada por hora) */}
+              <div className="pt-4 border-t border-slate-100 space-y-3">
+                <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1.5">
+                  <Euro size={12} />
+                  <span>Configuración Financiera</span>
+                </h4>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Tarifa por Hora Pactada (€/h)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={empTarifaHora}
+                    onChange={(e) => setEmpTarifaHora(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
 
-              <div className="pt-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
+              {/* Técnico Activo */}
+              <div className="pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-semibold text-slate-700">
                 <input
                   type="checkbox"
                   id="empActivo"
@@ -322,6 +508,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                 <label htmlFor="empActivo" className="cursor-pointer">Técnico activo para asignaciones de órdenes</label>
               </div>
 
+              {/* Botones de Pie */}
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
                 <button
                   type="button"

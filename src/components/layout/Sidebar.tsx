@@ -11,7 +11,9 @@ import {
   Settings, 
   LogOut,
   ChevronRight,
-  X
+  X,
+  Receipt,
+  Wallet
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -24,39 +26,78 @@ interface SidebarProps {
 export default function Sidebar({ isOpen = false, onClose, onLogout }: SidebarProps) {
   const pathname = usePathname();
   const supabase = createClient();
+  const [userRole, setUserRole] = React.useState<string | null>(null);
 
-  const menuItems = [
-    {
-      name: 'Planning',
-      path: '/planning',
-      icon: CalendarDays,
-      description: 'Agenda por operario'
-    },
-    {
-      name: 'Agenda de servicios',
-      path: '/agenda',
-      icon: ClipboardList,
-      description: 'Listado de pendientes'
-    },
-    {
-      name: 'Servicios',
-      path: '/servicios',
-      icon: Briefcase,
-      description: 'Gestión y edición'
-    },
-    {
-      name: 'Correos enviados',
-      path: '/correos',
-      icon: MailCheck,
-      description: 'Historial de envíos'
-    },
-    {
-      name: 'Configuración',
-      path: '/configuracion',
-      icon: Settings,
-      description: 'Ajustes del programa'
+  React.useEffect(() => {
+    const fetchUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('perfiles')
+          .select('rol')
+          .eq('id', user.id)
+          .maybeSingle();
+        setUserRole(profile?.rol || 'Instalador');
+      }
+    };
+    fetchUserRole();
+  }, []);
+
+  // Items de menú dinámicos basados en el rol
+  const menuItems = React.useMemo(() => {
+    if (!userRole) return [];
+
+    if (userRole === 'Administrador' || userRole === 'Coordinador') {
+      return [
+        {
+          name: 'Planning',
+          path: '/planning',
+          icon: CalendarDays,
+          description: 'Agenda por operario'
+        },
+        {
+          name: 'Agenda de servicios',
+          path: '/agenda',
+          icon: ClipboardList,
+          description: 'Listado de pendientes'
+        },
+        {
+          name: 'Servicios',
+          path: '/servicios',
+          icon: Briefcase,
+          description: 'Gestión y edición'
+        },
+        {
+          name: 'Liquidaciones',
+          path: '/liquidaciones',
+          icon: Receipt,
+          description: 'Pagos a colaboradores'
+        },
+        {
+          name: 'Correos enviados',
+          path: '/correos',
+          icon: MailCheck,
+          description: 'Historial de envíos'
+        },
+        {
+          name: 'Configuración',
+          path: '/configuracion',
+          icon: Settings,
+          description: 'Ajustes del programa'
+        }
+      ];
+    } else {
+      // Instalador / Operario / Colaborador externo
+      return [
+        {
+          name: 'Mis Servicios Prestados',
+          path: '/mis-servicios',
+          icon: Wallet,
+          description: 'Historial y cobros'
+        }
+      ];
     }
-  ];
+  }, [userRole]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();

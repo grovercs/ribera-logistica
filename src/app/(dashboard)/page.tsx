@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { 
   ClipboardList, 
@@ -15,6 +16,20 @@ import {
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  
+  // Interceptar instaladores y redirigirlos a su historial de servicios
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { data: profile } = await supabase
+      .from('perfiles')
+      .select('rol')
+      .eq('id', user.id)
+      .maybeSingle();
+      
+    if (profile?.rol === 'Instalador' || profile?.rol === 'Operario') {
+      redirect('/mis-servicios');
+    }
+  }
   
   // 1. Obtener estadísticas de servicios agrupados por estado
   const { data: serviciosData } = await supabase
