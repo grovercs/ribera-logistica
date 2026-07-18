@@ -266,18 +266,23 @@ export default function MisServiciosContainer({ reportes, empleado }: MisServici
                     <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900">{rep.total_importe.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</td>
                     <td className="px-5 py-3.5 text-center">
                       {rep.estado_liquidacion === 'Pagado' ? (
-                        <div className="inline-flex flex-col items-center">
-                          <span className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-2.5 py-0.5 rounded text-[8px] font-black uppercase">
-                            COBRADO / PAGADO
+                        <div className="inline-flex flex-col items-center gap-0.5">
+                          <span className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider">
+                            Pagado por {rep.medio_pago || 'Transferencia'}
                           </span>
                           {rep.fecha_pago && (
-                            <span className="text-[8px] text-slate-400 font-medium mt-0.5">
-                              {new Date(rep.fecha_pago).toLocaleDateString('es-ES')} via {rep.medio_pago}
+                            <span className="text-[8px] text-slate-400 font-medium">
+                              {new Date(rep.fecha_pago).toLocaleDateString('es-ES')}
+                            </span>
+                          )}
+                          {rep.notas_pago && (
+                            <span className="text-[9px] text-slate-500 italic mt-1 max-w-[180px] block text-center font-normal leading-normal border-t border-slate-100 pt-1">
+                              Nota: {rep.notas_pago}
                             </span>
                           )}
                         </div>
                       ) : (
-                        <span className="bg-amber-50 text-amber-600 border border-amber-200 px-2.5 py-0.5 rounded text-[8px] font-black uppercase">
+                        <span className="bg-amber-50 text-amber-600 border border-amber-200 px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider">
                           PENDIENTE DE PAGO
                         </span>
                       )}

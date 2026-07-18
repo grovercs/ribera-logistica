@@ -29,6 +29,19 @@ export async function guardarEmpleado(data: EmpleadoInput) {
   }
 
   try {
+    // Buscar si existe un perfil con este email para asociar perfil_id
+    let perfilId = null;
+    if (data.email) {
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('id')
+        .eq('email', data.email.trim().toLowerCase())
+        .maybeSingle();
+      if (perfil) {
+        perfilId = perfil.id;
+      }
+    }
+
     const payload = {
       nombre: data.nombre.trim(),
       telefono: data.telefono ? data.telefono.trim() : null,
@@ -40,7 +53,8 @@ export async function guardarEmpleado(data: EmpleadoInput) {
       tecnico_autorizado: data.tecnico_autorizado ? data.tecnico_autorizado.trim() : null,
       email: data.email ? data.email.trim() : null,
       iban: data.iban ? data.iban.trim() : null,
-      tarifa_hora: data.tarifa_hora
+      tarifa_hora: data.tarifa_hora,
+      perfil_id: perfilId
     };
 
     if (data.id) {

@@ -26,7 +26,7 @@ export default async function DashboardPage() {
       .eq('id', user.id)
       .maybeSingle();
       
-    if (profile?.rol === 'Instalador' || profile?.rol === 'Operario') {
+    if (profile?.rol !== 'Administrador' && profile?.rol !== 'Coordinador') {
       redirect('/mis-servicios');
     }
   }

@@ -143,19 +143,21 @@ export default function Sidebar({ isOpen = false, onClose, onLogout }: SidebarPr
       {/* Navegación */}
       <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
         {/* Dashboard Principal (Acceso Directo) */}
-        <Link
-          href="/"
-          className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all group ${
-            pathname === '/'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/15'
-              : 'hover:bg-slate-800/60 hover:text-slate-100'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] uppercase font-bold tracking-wider">Dashboard Principal</span>
-          </div>
-          <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-        </Link>
+        {(userRole === 'Administrador' || userRole === 'Coordinador') && (
+          <Link
+            href="/"
+            className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all group ${
+              pathname === '/'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/15'
+                : 'hover:bg-slate-800/60 hover:text-slate-100'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] uppercase font-bold tracking-wider">Dashboard Principal</span>
+            </div>
+            <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+          </Link>
+        )}
 
         <div className="pt-4 pb-2 px-4">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Operaciones</span>

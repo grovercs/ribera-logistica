@@ -19,6 +19,12 @@ BEGIN
         COALESCE((new.raw_user_meta_data->>'rol')::public.rol_usuario, 'Instalador'::public.rol_usuario),
         true
     );
+    
+    -- Vincular automáticamente empleado si coincide el email
+    UPDATE public.empleados
+    SET perfil_id = new.id
+    WHERE email = new.email;
+    
     RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
