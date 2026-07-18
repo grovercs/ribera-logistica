@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Logistica Fernaguez Mobile</string>
+    <string name="title_activity_main">Logistica Fernaguez Mobile</string>
+    <string name="package_name">com.logisticafernaguez.mobile</string>
+    <string name="custom_url_scheme">com.logisticafernaguez.mobile</string>
+</resources>
