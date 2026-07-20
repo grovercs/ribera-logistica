@@ -66,8 +66,10 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
 
   const [days, setDays] = useState<Date[]>([]);
 
-  // Vista móvil: índice del día seleccionado dentro de la quincena
+  // Vista móvil: días laborables (sin domingo) y día seleccionado
+  const [mobileDays, setMobileDays] = useState<Date[]>([]);
   const [mobileSelectedDayIndex, setMobileSelectedDayIndex] = useState(0);
+  const [mobileSelectedWeek, setMobileSelectedWeek] = useState(0); // 0 = semana 1, 1 = semana 2
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -103,16 +105,27 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
     }
     setDays(list);
 
-    // Al cambiar de quincena, situar el día móvil en "hoy" si cae dentro; si no, en el primer día
+    // Vista móvil: omitir domingos para no mostrar días no laborables
+    const laborables = list.filter(d => d.getDay() !== 0);
+    setMobileDays(laborables);
+
+    // Al cambiar de quincena, situar el día móvil en "hoy" si es laborable; si no, en el primer día
     const todayStr = formatDateLocal(new Date());
-    const todayIndex = list.findIndex(d => formatDateLocal(d) === todayStr);
-    setMobileSelectedDayIndex(todayIndex >= 0 ? todayIndex : 0);
+    const todayIndex = laborables.findIndex(d => formatDateLocal(d) === todayStr);
+    const initialIndex = todayIndex >= 0 ? todayIndex : 0;
+    setMobileSelectedDayIndex(initialIndex);
+    setMobileSelectedWeek(initialIndex < 6 ? 0 : 1);
   }, [startDate]);
 
   // Cargar servicios en caliente cuando cambie la quincena (startDate)
   useEffect(() => {
     refreshServicios();
   }, [startDate]);
+
+  // Sincronizar semana móvil cuando cambia el día seleccionado manualmente
+  useEffect(() => {
+    setMobileSelectedWeek(mobileSelectedDayIndex < 6 ? 0 : 1);
+  }, [mobileSelectedDayIndex]);
 
   // Actualizar los servicios locales si cambian los iniciales
   useEffect(() => {
@@ -411,14 +424,20 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
 
   // --- HELPERS PARA VISTA MÓVIL DE DÍA ---
 
-  const selectedDay = days[mobileSelectedDayIndex] || days[0];
+  const selectedDay = mobileDays[mobileSelectedDayIndex] || mobileDays[0];
   const selectedDayStr = selectedDay ? formatDateLocal(selectedDay) : '';
 
   const navigateDay = (direction: 'prev' | 'next') => {
     setMobileSelectedDayIndex(prev => {
       const next = direction === 'prev' ? prev - 1 : prev + 1;
-      return Math.max(0, Math.min(days.length - 1, next));
+      return Math.max(0, Math.min(mobileDays.length - 1, next));
     });
+  };
+
+  const handleWeekChange = (weekIndex: number) => {
+    setMobileSelectedWeek(weekIndex);
+    const startIndex = weekIndex === 0 ? 0 : Math.min(6, mobileDays.length - 1);
+    setMobileSelectedDayIndex(startIndex);
   };
 
   const handleMobileCellClick = (hourStr: string) => {
@@ -714,13 +733,34 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
               >
                 <ChevronLeft size={18} />
               </button>
-              <span className="text-sm font-black text-slate-800">
-                {selectedDay && selectedDay.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </span>
+
+              <div className="flex flex-col items-center">
+                <span className="text-sm font-black text-slate-800">
+                  {selectedDay && selectedDay.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </span>
+                {/* Selector de semana para saltar rápido dentro de la quincena */}
+                <select
+                  value={mobileSelectedWeek}
+                  onChange={(e) => handleWeekChange(Number(e.target.value))}
+                  className="mt-0.5 text-[10px] font-bold text-slate-500 bg-transparent border-0 focus:outline-none cursor-pointer text-center"
+                >
+                  {mobileDays.length >= 6 && (
+                    <option value={0}>
+                      Semana 1 · {mobileDays[0].toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - {mobileDays[Math.min(5, mobileDays.length - 1)].toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                    </option>
+                  )}
+                  {mobileDays.length > 6 && (
+                    <option value={1}>
+                      Semana 2 · {mobileDays[6].toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - {mobileDays[mobileDays.length - 1].toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                    </option>
+                  )}
+                </select>
+              </div>
+
               <button
                 type="button"
                 onClick={() => navigateDay('next')}
-                disabled={mobileSelectedDayIndex >= days.length - 1}
+                disabled={mobileSelectedDayIndex >= mobileDays.length - 1}
                 className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 transition-colors"
               >
                 <ChevronRight size={18} />
@@ -728,7 +768,7 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
             </div>
 
             <div className="flex overflow-x-auto px-2 py-3 gap-2">
-              {days.map((date, idx) => {
+              {mobileDays.map((date, idx) => {
                 const isSelected = idx === mobileSelectedDayIndex;
                 const isToday = formatDateLocal(date) === formatDateLocal(new Date());
                 const weekday = date.toLocaleDateString('es-ES', { weekday: 'narrow' });
