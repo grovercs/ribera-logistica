@@ -399,7 +399,6 @@ const MobileDetalleOrden = () => {
             creador_id: reporte?.creador_id || currentUserId,
             trabajo_realizado: trabajoRealizado,
             material_utilizado: materialUtilizado || '',
-            notas: `${trabajoRealizado}\n\nMATERIALES:\n${materialUtilizado || ''}`,
             firma_url: signatureUrl,
             horas_trabajadas: parsedHoras,
             fotos_urls: fotos.length > 0 ? fotos : [],
