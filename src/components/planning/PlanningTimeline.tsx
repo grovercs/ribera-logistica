@@ -122,10 +122,6 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
     refreshServicios();
   }, [startDate]);
 
-  // Sincronizar semana móvil cuando cambia el día seleccionado manualmente
-  useEffect(() => {
-    setMobileSelectedWeek(mobileSelectedDayIndex < 6 ? 0 : 1);
-  }, [mobileSelectedDayIndex]);
 
   // Actualizar los servicios locales si cambian los iniciales
   useEffect(() => {
@@ -424,20 +420,27 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
 
   // --- HELPERS PARA VISTA MÓVIL DE DÍA ---
 
-  const selectedDay = mobileDays[mobileSelectedDayIndex] || mobileDays[0];
+  // Días de la semana actualmente visible (6 días laborables)
+  const currentWeekDays = mobileSelectedWeek === 0
+    ? mobileDays.slice(0, 6)
+    : mobileDays.slice(6, 12);
+
+  const selectedDay = currentWeekDays[mobileSelectedDayIndex] || currentWeekDays[0];
   const selectedDayStr = selectedDay ? formatDateLocal(selectedDay) : '';
 
   const navigateDay = (direction: 'prev' | 'next') => {
     setMobileSelectedDayIndex(prev => {
       const next = direction === 'prev' ? prev - 1 : prev + 1;
-      return Math.max(0, Math.min(mobileDays.length - 1, next));
+      // Limitar al rango de la semana seleccionada (0..5)
+      const minIndex = 0;
+      const maxIndex = currentWeekDays.length - 1;
+      return Math.max(minIndex, Math.min(maxIndex, next));
     });
   };
 
   const handleWeekChange = (weekIndex: number) => {
     setMobileSelectedWeek(weekIndex);
-    const startIndex = weekIndex === 0 ? 0 : Math.min(6, mobileDays.length - 1);
-    setMobileSelectedDayIndex(startIndex);
+    setMobileSelectedDayIndex(0);
   };
 
   const handleMobileCellClick = (hourStr: string) => {
@@ -760,7 +763,7 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
               <button
                 type="button"
                 onClick={() => navigateDay('next')}
-                disabled={mobileSelectedDayIndex >= mobileDays.length - 1}
+                disabled={mobileSelectedDayIndex >= currentWeekDays.length - 1}
                 className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 transition-colors"
               >
                 <ChevronRight size={18} />
@@ -768,7 +771,7 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
             </div>
 
             <div className="flex overflow-x-auto px-2 py-3 gap-2">
-              {mobileDays.map((date, idx) => {
+              {currentWeekDays.map((date, idx) => {
                 const isSelected = idx === mobileSelectedDayIndex;
                 const isToday = formatDateLocal(date) === formatDateLocal(new Date());
                 const weekday = date.toLocaleDateString('es-ES', { weekday: 'narrow' });
@@ -777,7 +780,7 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                     key={idx}
                     type="button"
                     onClick={() => setMobileSelectedDayIndex(idx)}
-                    className={`flex-shrink-0 w-12 h-14 rounded-xl flex flex-col items-center justify-center text-xs font-bold transition-all border ${
+                    className={`flex-1 min-w-[2.75rem] h-14 rounded-xl flex flex-col items-center justify-center text-xs font-bold transition-all border ${
                       isSelected
                         ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
                         : 'bg-white text-slate-600 border-slate-200 hover:border-primary/40'
