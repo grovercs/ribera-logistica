@@ -94,7 +94,7 @@ export default function MisServiciosContainer({ reportes, empleado }: MisServici
       
       {/* FICHA TÉCNICA DEL OPERARIO / EMPRESA */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <h3 className="text-xs font-black text-blue-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+        <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-3 flex items-center gap-1.5">
           <Landmark size={14} />
           <span>Ficha de Colaborador Registrada</span>
         </h3>
@@ -173,7 +173,7 @@ export default function MisServiciosContainer({ reportes, empleado }: MisServici
       {/* FILTROS */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-3">
-          <Wallet size={14} className="text-blue-500" />
+          <Wallet size={14} className="text-primary/80" />
           <span>Filtros de Búsqueda</span>
         </h2>
 
@@ -188,7 +188,7 @@ export default function MisServiciosContainer({ reportes, empleado }: MisServici
                 placeholder="Código de servicio o cliente..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
               />
             </div>
           </div>
@@ -200,7 +200,7 @@ export default function MisServiciosContainer({ reportes, empleado }: MisServici
               type="date"
               value={desde}
               onChange={(e) => setDesde(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
             />
           </div>
 
@@ -211,7 +211,7 @@ export default function MisServiciosContainer({ reportes, empleado }: MisServici
               type="date"
               value={hasta}
               onChange={(e) => setHasta(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
             />
           </div>
 
@@ -221,7 +221,7 @@ export default function MisServiciosContainer({ reportes, empleado }: MisServici
             <select
               value={estadoFilter}
               onChange={(e) => setEstadoFilter(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
             >
               <option value="">Todos los cobros</option>
               <option value="Pendiente">Pendiente de Cobro</option>

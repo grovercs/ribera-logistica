@@ -74,7 +74,7 @@ export async function enviarCorreoServicio(servicioId: number, emailDestinatario
             margin-bottom: 5px;
           }
           .logo span {
-            color: #3b82f6;
+            color: #003366;
           }
           .header p {
             margin: 0;
@@ -127,7 +127,7 @@ export async function enviarCorreoServicio(servicioId: number, emailDestinatario
             margin: 30px 0 10px 0;
           }
           .btn {
-            background-color: #3b82f6;
+            background-color: #003366;
             color: #ffffff !important;
             text-decoration: none;
             padding: 12px 24px;

@@ -95,7 +95,7 @@ export default async function DashboardPage() {
           </Link>
           <Link
             href="/servicios?nuevo=true"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-blue-600/10 hover:shadow-blue-500/20 transition-all"
+            className="px-4 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all"
           >
             <PlusCircle size={16} />
             <span>Nuevo Servicio</span>
@@ -122,13 +122,13 @@ export default async function DashboardPage() {
 
         {/* KPI En Proceso */}
         <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
+          <div className="w-12 h-12 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-center text-primary">
             <Clock size={22} />
           </div>
           <div>
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">En Curso</p>
             <p className="text-3xl font-black text-slate-800 mt-1">{enCurso}</p>
-            <span className="text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full mt-1.5 inline-block">
+            <span className="text-[10px] text-primary font-semibold bg-primary/5 px-2 py-0.5 rounded-full mt-1.5 inline-block">
               Operarios en campo
             </span>
           </div>
@@ -158,7 +158,7 @@ export default async function DashboardPage() {
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
             <div className="p-6 border-b border-slate-200 flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-800">Servicios Recientes</h2>
-              <Link href="/servicios" className="text-xs font-semibold text-blue-600 hover:text-blue-500 flex items-center gap-1 transition-colors">
+              <Link href="/servicios" className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1 transition-colors">
                 <span>Ver todos</span>
                 <ArrowRight size={14} />
               </Link>
@@ -192,7 +192,7 @@ export default async function DashboardPage() {
                             (s.estados as any)?.nombre === 'Terminado' || (s.estados as any)?.nombre === 'Facturado/Cerrado'
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                               : (s.estados as any)?.nombre === 'En curso'
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                              ? 'bg-primary/5 text-primary-dark border border-primary/20'
                               : (s.estados as any)?.nombre === 'Pendiente'
                               ? 'bg-amber-50 text-amber-700 border border-amber-200'
                               : 'bg-slate-50 text-slate-600 border border-slate-200'
@@ -213,7 +213,7 @@ export default async function DashboardPage() {
         <div className="space-y-6">
           <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
             <h2 className="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <Calendar size={18} className="text-blue-600" />
+              <Calendar size={18} className="text-primary" />
               <span>Intervenciones de Hoy</span>
             </h2>
             
@@ -226,7 +226,7 @@ export default async function DashboardPage() {
                 dailyAgenda.map((item) => (
                   <div 
                     key={item.id} 
-                    className="flex gap-4 border-l-2 border-blue-500 pl-4 py-1"
+                    className="flex gap-4 border-l-2 border-primary pl-4 py-1"
                   >
                     <div className="flex flex-col min-w-[50px]">
                       <span className="text-xs font-black text-slate-800">
@@ -245,7 +245,7 @@ export default async function DashboardPage() {
                           <User size={10} />
                           {(item.empleados as any)?.nombre || 'Sin técnico'}
                         </span>
-                        <span className="flex items-center gap-0.5 text-blue-600">
+                        <span className="flex items-center gap-0.5 text-primary">
                           <Wrench size={10} />
                           {item.codigo_servicio}
                         </span>

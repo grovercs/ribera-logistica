@@ -424,7 +424,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
                 placeholder="Servicio, cliente o técnico..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
               />
             </div>
           </div>
@@ -436,7 +436,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
               type="date"
               value={desde}
               onChange={(e) => setDesde(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
             />
           </div>
 
@@ -447,7 +447,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
               type="date"
               value={hasta}
               onChange={(e) => setHasta(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
             />
           </div>
 
@@ -457,7 +457,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
             <select
               value={tecnicoFilter}
               onChange={(e) => setTecnicoFilter(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
             >
               <option value="">Todos los técnicos</option>
               {empleados.map((emp) => (
@@ -474,7 +474,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
             <select
               value={estadoFilter}
               onChange={(e) => setEstadoFilter(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
             >
               <option value="">Todos los estados</option>
               <option value="Pendiente">Pendiente de Pago</option>
@@ -492,7 +492,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
             <button
               onClick={() => setTab('obra')}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all ${
-                tab === 'obra' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                tab === 'obra' ? 'bg-primary text-white shadow' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               Agrupado por Obra / Servicio
@@ -500,7 +500,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
             <button
               onClick={() => setTab('tecnico')}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all ${
-                tab === 'tecnico' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                tab === 'tecnico' ? 'bg-primary text-white shadow' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               Resumen por Técnico
@@ -508,7 +508,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
             <button
               onClick={() => setTab('global')}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all ${
-                tab === 'global' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                tab === 'global' ? 'bg-primary text-white shadow' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               Detalle Global de Intervenciones
@@ -581,7 +581,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
                         <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
                           t.tipo === 'empresa_externa' ? 'bg-orange-50 text-orange-600 border border-orange-200' :
                           t.tipo === 'autonomo' ? 'bg-purple-50 text-purple-600 border border-purple-200' :
-                          'bg-blue-50 text-blue-600 border border-blue-200'
+                          'bg-primary/5 text-primary border border-primary/20'
                         }`}>
                           {t.tipo === 'empresa_externa' ? 'Empresa' : t.tipo === 'autonomo' ? 'Autónomo' : 'Interno'}
                         </span>
@@ -675,7 +675,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
                               <button
                                 type="button"
                                 onClick={() => openPagoModal(rep)}
-                                className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-md shadow-blue-600/10 cursor-pointer hover:scale-105 active:scale-95 transition-all flex items-center gap-1"
+                                className="bg-primary hover:bg-primary/90 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-md shadow-primary/10 cursor-pointer hover:scale-105 active:scale-95 transition-all flex items-center gap-1"
                               >
                                 <CreditCard size={10} />
                                 <span>Pagar</span>
@@ -700,7 +700,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
 
             <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText size={16} className="text-blue-400" />
+                <FileText size={16} className="text-primary/70" />
                 <h3 className="text-sm font-bold">Detalle del Servicio</h3>
               </div>
               <button
@@ -718,7 +718,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
                 <p className="text-slate-900 font-bold text-sm">{selectedServicioDetalle.servicios?.codigo_servicio} — {selectedServicioDetalle.servicios?.nombre_cliente}</p>
                 <p className="text-slate-600">{selectedServicioDetalle.servicios?.dest_direccion || 'Sin dirección registrada'}</p>
                 <div className="flex flex-wrap gap-2 pt-1">
-                  <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded uppercase">
+                  <span className="bg-primary/10 text-primary-dark text-[10px] font-black px-2 py-0.5 rounded uppercase">
                     {selectedServicioDetalle.servicios?.tipos_servicios?.nombre || 'General'}
                   </span>
                   {selectedServicioDetalle.servicios?.num_documento && (
@@ -779,7 +779,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
           <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
             
             <div className="px-5 py-4 bg-slate-900 text-white flex items-center gap-2">
-              <CreditCard size={16} className="text-blue-400" />
+              <CreditCard size={16} className="text-primary/70" />
               <h3 className="text-sm font-bold">Registrar Pago de Liquidación</h3>
             </div>
 
@@ -790,7 +790,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
                 <p className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Detalle del Servicio</p>
                 <p className="text-slate-800 font-bold">Servicio: {selectedReporte.servicios?.codigo_servicio} — {selectedReporte.servicios?.nombre_cliente}</p>
                 <p className="text-slate-800 font-medium">Técnico: {selectedReporte.empleado_nombre}</p>
-                <p className="text-blue-700 font-black text-sm pt-1.5 border-t border-slate-200 mt-1.5 flex justify-between">
+                <p className="text-primary-dark font-black text-sm pt-1.5 border-t border-slate-200 mt-1.5 flex justify-between">
                   <span>IMPORTE A ABONAR:</span>
                   <span>{(Number(selectedReporte.horas_trabajadas) * Number(selectedReporte.tarifa_hora)).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</span>
                 </p>
@@ -803,7 +803,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
                   type="date"
                   value={pagoFecha}
                   onChange={(e) => setPagoFecha(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                   required
                 />
               </div>
@@ -814,7 +814,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
                 <select
                   value={pagoMedio}
                   onChange={(e) => setPagoMedio(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                 >
                   <option value="Transferencia">Transferencia Bancaria</option>
                   <option value="Recibo Bancario">Recibo Bancario</option>
@@ -830,7 +830,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
                   type="text"
                   value={pagoNotas}
                   onChange={(e) => setPagoNotas(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                   placeholder="Ej: Ref. Transferencia 849302"
                 />
               </div>
@@ -847,7 +847,7 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
                 <button
                   type="submit"
                   disabled={guardandoPago}
-                  className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-lg shadow-blue-600/10 transition-all disabled:opacity-50"
+                  className="bg-primary hover:bg-primary/90 text-white rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-lg shadow-primary/10 transition-all disabled:opacity-50"
                 >
                   {guardandoPago ? 'Procesando...' : 'Confirmar Pago'}
                 </button>

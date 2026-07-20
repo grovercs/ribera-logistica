@@ -377,7 +377,7 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
         
         {/* Selector de Operario / Técnico */}
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="p-2 bg-blue-50 border border-blue-200 text-blue-600 rounded-lg">
+          <div className="p-2 bg-primary/5 border border-primary/20 text-primary rounded-lg">
             <User size={18} />
           </div>
           <div className="flex-1 md:flex-none">
@@ -515,8 +515,8 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                             : 'border-r border-slate-300 bg-white' 
                         } ${
                           isSel 
-                            ? '!bg-blue-600/15 !border-blue-300' 
-                            : 'hover:bg-blue-500/5'
+                            ? '!bg-primary/15 !border-primary/30' 
+                            : 'hover:bg-primary/90/5'
                         }`}
                       />
                     );
@@ -538,7 +538,7 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                         setIsModalOpen(true);
                         setSelectedRange(null); // Limpiar selección tras abrir
                       }}
-                      className="absolute z-30 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-full px-3 py-1 text-[10px] font-bold shadow-lg shadow-blue-500/30 flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer top-1/2 -translate-y-1/2 select-none border border-blue-400"
+                      className="absolute z-30 bg-primary hover:bg-primary/90 active:bg-primary-dark text-white rounded-full px-3 py-1 text-[10px] font-bold shadow-lg shadow-primary/30 flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer top-1/2 -translate-y-1/2 select-none border border-primary/40"
                       style={{
                         left: `${(timeToPercent(selectedRange.horaIni) + timeToPercent(selectedRange.horaFin)) / 2}%`,
                         transform: 'translate(-50%, -50%)',
@@ -553,7 +553,7 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                   {dayEvents.map((s) => {
                     const pos = getEventPosition(s);
                     // Obtener color base
-                    let baseColor = s.tipos_servicios?.color || '#3b82f6';
+                    let baseColor = s.tipos_servicios?.color || '#003366';
                     
                     // Normalizar y comprobar si es un color negro, gris oscuro o rojo/marrón muy oscuro agresivo
                     const cleanColor = baseColor.trim().toLowerCase();
@@ -574,7 +574,7 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                       cleanColor.includes('rgba(29');
                     
                     if (isDark) {
-                      baseColor = '#3b82f6'; // Forzar a azul agradable
+                      baseColor = '#003366'; // Forzar a azul agradable
                     }
                     
                     // Crear gradiente lineal horizontal (degradado de mayor a menor)

@@ -37,14 +37,14 @@ export default function ServicioTooltip({ servicio, x, y, visible }: ServicioToo
       
       {/* Cabecera Tooltip */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
-        <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider">
+        <span className="text-[10px] font-black text-primary/70 uppercase tracking-wider">
           {servicio.codigo_servicio}
         </span>
         <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
           servicio.estados?.nombre === 'Terminado' || servicio.estados?.nombre === 'Facturado/Cerrado'
             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
             : servicio.estados?.nombre === 'En curso'
-            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+            ? 'bg-primary/10 text-primary/70 border border-primary/20'
             : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
         }`}>
           {servicio.estados?.nombre || 'Pendiente'}
@@ -122,7 +122,7 @@ export default function ServicioTooltip({ servicio, x, y, visible }: ServicioToo
         {/* Importe Total */}
         <div className="flex items-center justify-between border-t border-slate-800 pt-2 mt-2">
           <span className="text-[10px] text-slate-500 uppercase font-bold">Importe</span>
-          <span className="text-blue-400 font-black">
+          <span className="text-primary/70 font-black">
             {Number(servicio.total || 0).toFixed(2)} €
           </span>
         </div>

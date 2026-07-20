@@ -652,7 +652,7 @@ export default function ServicioModal({
         {/* Cabecera Modal */}
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-600/20 border border-blue-500/30 text-blue-400 font-bold rounded-lg flex items-center justify-center text-sm">
+            <div className="w-8 h-8 bg-primary/20 border border-primary/30 text-primary/70 font-bold rounded-lg flex items-center justify-center text-sm">
               S
             </div>
             <div>
@@ -696,7 +696,7 @@ export default function ServicioModal({
                   setTiendaId(val);
                   calcularCodigo(val);
                 }}
-                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary"
               >
                 {catalogos.tiendas.map(t => (
                   <option key={t.id} value={t.id}>{t.nombre}</option>
@@ -712,7 +712,7 @@ export default function ServicioModal({
                   type="text"
                   value={showCrmSuggestions ? searchCrmQuery : nombreCliente}
                   onChange={(e) => handleCrmSearch(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg py-2 pl-9 pr-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500 placeholder:text-slate-400"
+                  className="w-full bg-white border border-slate-200 rounded-lg py-2 pl-9 pr-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary placeholder:text-slate-400"
                   placeholder="Introduce nombre o código del cliente..."
                 />
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -737,10 +737,10 @@ export default function ServicioModal({
                       key={cli.id}
                       type="button"
                       onClick={() => selectCrmCliente(cli)}
-                      className="w-full text-left px-4 py-2 hover:bg-blue-50 text-xs font-semibold text-slate-700 flex items-center justify-between cursor-pointer"
+                      className="w-full text-left px-4 py-2 hover:bg-primary/5 text-xs font-semibold text-slate-700 flex items-center justify-between cursor-pointer"
                     >
                       <span>{cli.nombre}</span>
-                      <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Cód: {cli.codigo_cliente}</span>
+                      <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded">Cód: {cli.codigo_cliente}</span>
                     </button>
                   ))}
                 </div>
@@ -758,7 +758,7 @@ export default function ServicioModal({
                 type="date"
                 value={fechaEntrega}
                 onChange={(e) => setFechaEntrega(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -768,7 +768,7 @@ export default function ServicioModal({
                 type="time"
                 value={horaEntregaIni}
                 onChange={(e) => setHoraEntregaIni(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -778,7 +778,7 @@ export default function ServicioModal({
                 type="time"
                 value={horaEntregaFin}
                 onChange={(e) => setHoraEntregaFin(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -787,7 +787,7 @@ export default function ServicioModal({
               <select
                 value={estadoId || 1}
                 onChange={(e) => setEstadoId(Number(e.target.value))}
-                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary"
               >
                 {catalogos.estados.map(est => (
                   <option key={est.id} value={est.id}>{est.nombre}</option>
@@ -800,7 +800,7 @@ export default function ServicioModal({
               <select
                 value={tipoDocumentoId || 1}
                 onChange={(e) => setTipoDocumentoId(Number(e.target.value))}
-                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary"
               >
                 {catalogos.tiposDocumentos.map(doc => (
                   <option key={doc.id} value={doc.id}>{doc.nombre}</option>
@@ -812,7 +812,7 @@ export default function ServicioModal({
               <label className="text-[10px] font-bold text-slate-500 uppercase block">
                 Nº Documento / Presupuesto
                 {presupuestosCliente.length > 0 && (
-                  <span className="ml-1 text-[9px] text-blue-500 normal-case font-bold">({presupuestosCliente.length} del cliente)</span>
+                  <span className="ml-1 text-[9px] text-primary/80 normal-case font-bold">({presupuestosCliente.length} del cliente)</span>
                 )}
               </label>
               <div className="flex gap-1.5">
@@ -825,7 +825,7 @@ export default function ServicioModal({
                       if (cod) handleImportarPresupuesto(cod);
                     }}
                     disabled={searchingDoc}
-                    className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
+                    className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary cursor-pointer"
                   >
                     <option value="">— Selecciona un presupuesto —</option>
                     {presupuestosCliente.map(p => (
@@ -846,7 +846,7 @@ export default function ServicioModal({
                     type="text"
                     value={numDocumento}
                     onChange={(e) => setNumDocumento(e.target.value)}
-                    className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                    className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary"
                     placeholder="Ej. 23108160"
                   />
                 )}
@@ -854,7 +854,7 @@ export default function ServicioModal({
                   type="button"
                   onClick={() => handleImportarPresupuesto()}
                   disabled={searchingDoc || !numDocumento}
-                  className="flex-shrink-0 px-3 bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 disabled:opacity-50 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"
+                  className="flex-shrink-0 px-3 bg-primary/5 text-primary border border-primary/20 hover:bg-primary/10 disabled:opacity-50 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"
                   title="Buscar presupuesto en CRM Integral e importar datos"
                 >
                   {searchingDoc ? 'Buscando...' : 'Importar'}
@@ -867,7 +867,7 @@ export default function ServicioModal({
               <select
                 value={tipoServicioId || 1}
                 onChange={(e) => setTipoServicioId(Number(e.target.value))}
-                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary"
               >
                 {catalogos.tiposServicios.map(ts => (
                   <option key={ts.id} value={ts.id}>{ts.nombre}</option>
@@ -880,7 +880,7 @@ export default function ServicioModal({
               <select
                 value={empleadoId || ''}
                 onChange={(e) => setEmpleadoId(e.target.value ? Number(e.target.value) : null)}
-                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary"
               >
                 <option value="">-- Sin técnico asignado --</option>
                 {catalogos.empleados.map(emp => (
@@ -905,7 +905,7 @@ export default function ServicioModal({
                     onClick={() => setActiveTab(tab)}
                     className={`flex-1 py-2 text-xs font-bold uppercase border-b-2 transition-all cursor-pointer ${
                       activeTab === tab
-                        ? 'border-blue-600 text-blue-600 bg-white'
+                        ? 'border-primary text-primary bg-white'
                         : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100/50'
                     }`}
                   >
@@ -956,7 +956,7 @@ export default function ServicioModal({
                       />
                       <button 
                         type="submit"
-                        className="sm:col-span-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg py-1.5 flex items-center justify-center gap-1 transition-all cursor-pointer"
+                        className="sm:col-span-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-lg py-1.5 flex items-center justify-center gap-1 transition-all cursor-pointer"
                       >
                         <Plus size={14} />
                         <span>Añadir</span>
@@ -1021,7 +1021,7 @@ export default function ServicioModal({
                           step="0.01"
                           value={totalServPropio || ''}
                           onChange={(e) => setTotalServPropio(Number(e.target.value))}
-                          className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                          className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary"
                           placeholder="0.00"
                         />
                       </div>
@@ -1041,7 +1041,7 @@ export default function ServicioModal({
                           step="0.01"
                           value={totalServExt || ''}
                           onChange={(e) => setTotalServExt(Number(e.target.value))}
-                          className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                          className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary"
                           placeholder="0.00"
                         />
                       </div>
@@ -1057,7 +1057,7 @@ export default function ServicioModal({
                     <textarea
                       value={destObservaciones}
                       onChange={(e) => setDestObservaciones(e.target.value)}
-                      className="w-full flex-1 min-h-[180px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white resize-none"
+                      className="w-full flex-1 min-h-[180px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-700 text-sm font-semibold focus:outline-none focus:border-primary focus:bg-white resize-none"
                       placeholder="Indica aquí el trabajo a realizar, materiales a llevar, dificultades de acceso, indicaciones del cliente, etc."
                     />
                   </div>
@@ -1153,13 +1153,13 @@ export default function ServicioModal({
               
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                 <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <MapPin size={14} className="text-blue-600" />
+                  <MapPin size={14} className="text-primary" />
                   <span>Destino / Logística</span>
                 </h3>
                 <button
                   type="button"
                   onClick={usarDireccionCliente}
-                  className="text-[10px] font-bold text-blue-600 hover:text-blue-500 hover:underline cursor-pointer"
+                  className="text-[10px] font-bold text-primary hover:text-primary/80 hover:underline cursor-pointer"
                 >
                   Dirección Cliente
                 </button>
@@ -1172,7 +1172,7 @@ export default function ServicioModal({
                   type="text" 
                   value={destDireccion}
                   onChange={(e) => setDestDireccion(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-slate-700 text-xs font-semibold focus:outline-none focus:border-blue-500"
+                  className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-slate-700 text-xs font-semibold focus:outline-none focus:border-primary"
                   placeholder="Calle y número..."
                 />
               </div>
@@ -1184,7 +1184,7 @@ export default function ServicioModal({
                     type="text" 
                     value={destNum}
                     onChange={(e) => setDestNum(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2 text-slate-700 text-xs font-semibold focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2 text-slate-700 text-xs font-semibold focus:outline-none focus:border-primary"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1193,7 +1193,7 @@ export default function ServicioModal({
                     type="text" 
                     value={destPiso}
                     onChange={(e) => setDestPiso(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2 text-slate-700 text-xs font-semibold focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2 text-slate-700 text-xs font-semibold focus:outline-none focus:border-primary"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1202,7 +1202,7 @@ export default function ServicioModal({
                     type="text" 
                     value={destLetra}
                     onChange={(e) => setDestLetra(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2 text-slate-700 text-xs font-semibold focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2 text-slate-700 text-xs font-semibold focus:outline-none focus:border-primary"
                   />
                 </div>
               </div>
@@ -1214,7 +1214,7 @@ export default function ServicioModal({
                     type="text" 
                     value={destCodPostal}
                     onChange={(e) => setDestCodPostal(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-slate-700 text-xs font-semibold focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-slate-700 text-xs font-semibold focus:outline-none focus:border-primary"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1223,7 +1223,7 @@ export default function ServicioModal({
                     type="text" 
                     value={destPoblacion}
                     onChange={(e) => setDestPoblacion(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-slate-700 text-xs font-semibold focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-slate-700 text-xs font-semibold focus:outline-none focus:border-primary"
                   />
                 </div>
               </div>
@@ -1234,7 +1234,7 @@ export default function ServicioModal({
                   type="text" 
                   value={destProvincia}
                   onChange={(e) => setDestProvincia(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-slate-700 text-xs font-semibold focus:outline-none focus:border-blue-500"
+                  className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-slate-700 text-xs font-semibold focus:outline-none focus:border-primary"
                 />
               </div>
 
@@ -1247,7 +1247,7 @@ export default function ServicioModal({
                       type="checkbox" 
                       checked={destAscensor}
                       onChange={(e) => setDestAscensor(e.target.checked)}
-                      className="rounded text-blue-600 focus:ring-blue-500 border-slate-300"
+                      className="rounded text-primary focus:ring-primary border-slate-300"
                     />
                     <span>Ascensor</span>
                   </label>
@@ -1256,7 +1256,7 @@ export default function ServicioModal({
                       type="checkbox" 
                       checked={destAccesoFurgo}
                       onChange={(e) => setDestAccesoFurgo(e.target.checked)}
-                      className="rounded text-blue-600 focus:ring-blue-500 border-slate-300"
+                      className="rounded text-primary focus:ring-primary border-slate-300"
                     />
                     <span>Furgoneta</span>
                   </label>
@@ -1265,7 +1265,7 @@ export default function ServicioModal({
                       type="checkbox" 
                       checked={destAccesoCamion}
                       onChange={(e) => setDestAccesoCamion(e.target.checked)}
-                      className="rounded text-blue-600 focus:ring-blue-500 border-slate-300"
+                      className="rounded text-primary focus:ring-primary border-slate-300"
                     />
                     <span>Camión</span>
                   </label>
@@ -1283,14 +1283,14 @@ export default function ServicioModal({
                     type="text" 
                     value={destNombre}
                     onChange={(e) => setDestNombre(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-slate-700 text-xs font-semibold focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-slate-700 text-xs font-semibold focus:outline-none focus:border-primary"
                     placeholder="Nombre..."
                   />
                   <input 
                     type="text" 
                     value={destTel}
                     onChange={(e) => setDestTel(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-slate-700 text-xs font-semibold focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-slate-700 text-xs font-semibold focus:outline-none focus:border-primary"
                     placeholder="Teléfono..."
                   />
                 </div>
@@ -1310,7 +1310,7 @@ export default function ServicioModal({
             <div>Materiales: <span className="text-slate-800 font-bold">{totalMateriales.toFixed(2)} €</span></div>
             <div>Serv. Propios: <span className="text-slate-800 font-bold">{totalServPropio.toFixed(2)} €</span></div>
             <div>Serv. Externos: <span className="text-slate-800 font-bold">{totalServExt.toFixed(2)} €</span></div>
-            <div className="border-l border-slate-300 pl-4">Total Orden: <span className="text-blue-600 font-black text-sm">{total.toFixed(2)} €</span></div>
+            <div className="border-l border-slate-300 pl-4">Total Orden: <span className="text-primary font-black text-sm">{total.toFixed(2)} €</span></div>
           </div>
 
           {/* Botones de acción */}
@@ -1369,7 +1369,7 @@ export default function ServicioModal({
               type="button"
               onClick={() => setPendingAction('save')}
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl px-5 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-blue-600/10 hover:shadow-blue-500/20 transition-all disabled:opacity-50"
+              className="bg-primary hover:bg-primary/90 active:bg-primary-dark text-white rounded-xl px-5 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all disabled:opacity-50"
             >
               <Save size={14} />
               <span>{loading ? 'Guardando...' : 'Guardar'}</span>
@@ -1387,7 +1387,7 @@ export default function ServicioModal({
           <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4">
             
             <div className="flex items-center gap-3 text-slate-800">
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+              <div className="p-2 bg-primary/5 text-primary rounded-lg">
                 <Mail size={18} />
               </div>
               <div>
@@ -1402,7 +1402,7 @@ export default function ServicioModal({
                 type="email"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                 placeholder="correo@ejemplo.com"
                 required
               />
@@ -1420,7 +1420,7 @@ export default function ServicioModal({
                 type="button"
                 onClick={handleSendEmail}
                 disabled={sendingEmail}
-                className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-blue-600/10 hover:shadow-blue-500/20 transition-all disabled:opacity-50"
+                className="bg-primary hover:bg-primary/90 text-white rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all disabled:opacity-50"
               >
                 {sendingEmail ? 'Enviando...' : 'Enviar Correo'}
               </button>

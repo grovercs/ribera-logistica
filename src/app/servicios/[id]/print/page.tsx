@@ -150,7 +150,7 @@ export default async function PrintPage({ params }: PrintPageProps) {
 
           <div className="p-2 space-y-0.5 col-span-2 bg-slate-50">
             <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Estado de la Orden</span>
-            <span className="text-[10px] font-black text-blue-800 uppercase tracking-widest">{s.estados?.nombre || 'PENDIENTE'}</span>
+            <span className="text-[10px] font-black text-primary-dark uppercase tracking-widest">{s.estados?.nombre || 'PENDIENTE'}</span>
           </div>
 
         </div>
@@ -346,7 +346,7 @@ export default async function PrintPage({ params }: PrintPageProps) {
             </div>
             <div className="flex justify-between pt-1 font-black text-xs">
               <span className="text-slate-900">IMPORTE TOTAL:</span>
-              <span className="text-blue-600">{Number(s.total || 0).toFixed(2)} €</span>
+              <span className="text-primary">{Number(s.total || 0).toFixed(2)} €</span>
             </div>
           </div>
         </div>

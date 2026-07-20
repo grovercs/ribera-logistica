@@ -70,14 +70,14 @@ export default function Header({ user, onMenuClick }: HeaderProps) {
             <span className="text-sm font-bold text-slate-800 leading-tight">
               {user?.nombre || user?.email || 'Operario'}
             </span>
-            <span className="text-[10px] font-semibold text-blue-600 flex items-center gap-1 uppercase tracking-wider mt-0.5">
+            <span className="text-[10px] font-semibold text-primary flex items-center gap-1 uppercase tracking-wider mt-0.5">
               <ShieldCheck size={10} />
               {user?.rol || 'Instalador'}
             </span>
           </div>
           
           {/* Avatar del Usuario */}
-          <div className="w-9 h-9 bg-blue-600/10 border border-blue-500/20 text-blue-600 flex items-center justify-center rounded-lg shadow-sm">
+          <div className="w-9 h-9 bg-primary/10 border border-primary/20 text-primary flex items-center justify-center rounded-lg shadow-sm">
             <User size={18} />
           </div>
         </div>

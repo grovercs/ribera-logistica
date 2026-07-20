@@ -81,7 +81,7 @@ export default function AgendaFilters({
             onClick={() => setFiltroRapido('todos_pendientes')}
             className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
               filtroRapido === 'todos_pendientes'
-                ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/10'
+                ? 'bg-primary border-primary text-white shadow-md shadow-primary/10'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -172,7 +172,7 @@ export default function AgendaFilters({
               type="text"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white placeholder:text-slate-400 transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white placeholder:text-slate-400 transition-all"
               placeholder="Buscar cliente, código, dirección..."
             />
             <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -185,7 +185,7 @@ export default function AgendaFilters({
           <select
             value={selectedEmpleadoId || ''}
             onChange={(e) => setSelectedEmpleadoId(e.target.value ? Number(e.target.value) : null)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all cursor-pointer"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all cursor-pointer"
           >
             <option value="">-- Todos los técnicos --</option>
             {catalogos.empleados.map(emp => (
@@ -200,7 +200,7 @@ export default function AgendaFilters({
           <select
             value={selectedTiendaId || ''}
             onChange={(e) => setSelectedTiendaId(e.target.value ? Number(e.target.value) : null)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all cursor-pointer"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all cursor-pointer"
           >
             <option value="">-- Todas las tiendas --</option>
             {catalogos.tiendas.map(t => (
@@ -217,14 +217,14 @@ export default function AgendaFilters({
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-[10px] font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-[10px] font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
             />
             <span className="text-slate-400 text-xs font-semibold">a</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-[10px] font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-[10px] font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
             />
           </div>
         </div>

@@ -47,7 +47,7 @@ export default function ConfirmDialog({
         <div className="flex items-start gap-3 p-5 border-b border-slate-100">
           <div
             className={`p-2.5 rounded-xl flex-shrink-0 ${
-              isDanger ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+              isDanger ? 'bg-red-50 text-red-600' : 'bg-primary/5 text-primary'
             }`}
           >
             <AlertTriangle size={20} />
@@ -83,7 +83,7 @@ export default function ConfirmDialog({
             className={`rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-50 text-white shadow-lg ${
               isDanger
                 ? 'bg-red-600 hover:bg-red-500 active:bg-red-700 shadow-red-600/10'
-                : 'bg-blue-600 hover:bg-blue-500 active:bg-blue-700 shadow-blue-600/10'
+                : 'bg-primary hover:bg-primary/90 active:bg-primary-dark shadow-primary/10'
             }`}
           >
             {loading ? 'Procesando...' : confirmText}

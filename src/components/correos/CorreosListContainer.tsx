@@ -66,7 +66,7 @@ export default function CorreosListContainer({ initialCorreos, catalogos }: Corr
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white placeholder:text-slate-400 transition-all"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white placeholder:text-slate-400 transition-all"
             placeholder="Buscar por destinatario, orden, asunto..."
           />
           <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -107,7 +107,7 @@ export default function CorreosListContainer({ initialCorreos, catalogos }: Corr
                         <button
                           type="button"
                           onClick={() => handleVerServicio(c.servicios.id)}
-                          className="text-blue-600 hover:text-blue-500 hover:underline flex items-center gap-1 font-bold text-left cursor-pointer"
+                          className="text-primary hover:text-primary/80 hover:underline flex items-center gap-1 font-bold text-left cursor-pointer"
                         >
                           <span>{c.servicios.codigo_servicio}</span>
                           <span className="font-medium text-[10px] text-slate-400">({c.servicios.nombre_cliente})</span>

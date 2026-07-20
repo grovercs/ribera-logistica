@@ -201,7 +201,7 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
                           </span>
                         )}
                         {s.dest_observaciones && (
-                          <span title="Notas adicionales en destino" className="p-0.5 bg-blue-100 text-blue-600 rounded text-[9px] font-black px-1">
+                          <span title="Notas adicionales en destino" className="p-0.5 bg-primary/10 text-primary rounded text-[9px] font-black px-1">
                             N
                           </span>
                         )}

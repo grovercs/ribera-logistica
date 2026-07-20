@@ -200,7 +200,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
             onClick={() => setActiveTab('tecnicos')}
             className={`w-full text-left px-5 py-3 text-xs font-bold flex items-center gap-2.5 transition-colors cursor-pointer ${
               activeTab === 'tecnicos'
-                ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600'
+                ? 'bg-primary/5 text-primary border-l-4 border-primary'
                 : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -211,7 +211,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
             onClick={() => setActiveTab('tiendas')}
             className={`w-full text-left px-5 py-3 text-xs font-bold flex items-center gap-2.5 transition-colors cursor-pointer ${
               activeTab === 'tiendas'
-                ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600'
+                ? 'bg-primary/5 text-primary border-l-4 border-primary'
                 : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -237,7 +237,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
               <button
                 type="button"
                 onClick={handleCreate}
-                className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-lg shadow-blue-600/10 cursor-pointer transition-all"
+                className="bg-primary hover:bg-primary/90 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-lg shadow-primary/10 cursor-pointer transition-all"
               >
                 <Plus size={14} />
                 <span>Nuevo Técnico</span>
@@ -281,7 +281,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                             <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
                               emp.tipo === 'empresa_externa' ? 'bg-orange-50 text-orange-600 border border-orange-200' :
                               emp.tipo === 'autonomo' ? 'bg-purple-50 text-purple-600 border border-purple-200' :
-                              'bg-blue-50 text-blue-600 border border-blue-200'
+                              'bg-primary/5 text-primary border border-primary/20'
                             }`}>
                               {emp.tipo === 'empresa_externa' ? 'Empresa' : emp.tipo === 'autonomo' ? 'Autónomo' : 'Interno'}
                             </span>
@@ -332,7 +332,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                               <button
                                 type="button"
                                 onClick={() => handleOpenAccessModal(emp)}
-                                className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-all cursor-pointer inline-flex items-center gap-1"
+                                className="text-[10px] font-bold text-primary bg-primary/5 border border-primary/20 hover:bg-primary/10 px-2.5 py-1 rounded-full transition-all cursor-pointer inline-flex items-center gap-1"
                               >
                                 <UserPlus size={10} />
                                 <span>Crear Acceso</span>
@@ -403,7 +403,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
           <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             
             <div className="px-5 py-4 bg-slate-900 text-white flex items-center gap-2">
-              <UserPlus size={16} className="text-blue-400" />
+              <UserPlus size={16} className="text-primary/70" />
               <h3 className="text-sm font-bold">{modalTitle}</h3>
             </div>
 
@@ -416,7 +416,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                   <select
                     value={empTipo}
                     onChange={(e) => setEmpTipo(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                   >
                     <option value="interno">Técnico Interno (Plantilla)</option>
                     <option value="autonomo">Autónomo Colaborador</option>
@@ -431,7 +431,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                     type="text"
                     value={empNombre}
                     onChange={(e) => setEmpNombre(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                     placeholder="Ej. GABY o INST. JUAN"
                     required
                   />
@@ -444,7 +444,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                     type="text"
                     value={empTelefono}
                     onChange={(e) => setEmpTelefono(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                     placeholder="Ej. 600 000 000"
                   />
                 </div>
@@ -453,7 +453,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
               {/* Sección Condicional: Empresa Externa o Autónomo */}
               {empTipo !== 'interno' && (
                 <div className="pt-4 border-t border-slate-100 space-y-4">
-                  <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1.5">
+                  <h4 className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
                     <Building2 size={12} />
                     <span>Datos de Empresa / Facturación</span>
                   </h4>
@@ -466,7 +466,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                         type="text"
                         value={empRazonSocial}
                         onChange={(e) => setEmpRazonSocial(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                         placeholder="Ej. Ribera Montajes S.L."
                       />
                     </div>
@@ -478,7 +478,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                         type="text"
                         value={empCifNif}
                         onChange={(e) => setEmpCifNif(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                         placeholder="Ej. B12345678"
                       />
                     </div>
@@ -490,7 +490,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                         type="text"
                         value={empTecnicoAutorizado}
                         onChange={(e) => setEmpTecnicoAutorizado(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                         placeholder="Ej. Carlos Gámez"
                       />
                     </div>
@@ -502,7 +502,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                         type="email"
                         value={empEmail}
                         onChange={(e) => setEmpEmail(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                         placeholder="Ej. facturas@empresa.com"
                       />
                     </div>
@@ -514,7 +514,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                         type="text"
                         value={empDireccionFiscal}
                         onChange={(e) => setEmpDireccionFiscal(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                         placeholder="Ej. Av. de la Ribera, 45, 2ºA, Lleida"
                       />
                     </div>
@@ -526,7 +526,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                         type="text"
                         value={empIban}
                         onChange={(e) => setEmpIban(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                         placeholder="ES21 0000 0000 0000 0000 0000"
                       />
                     </div>
@@ -536,7 +536,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
 
               {/* Configuración Financiera (Tarifa pactada por hora) */}
               <div className="pt-4 border-t border-slate-100 space-y-3">
-                <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1.5">
+                <h4 className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
                   <Euro size={12} />
                   <span>Configuración Financiera</span>
                 </h4>
@@ -549,7 +549,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                     min="0"
                     value={empTarifaHora}
                     onChange={(e) => setEmpTarifaHora(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                     placeholder="0.00"
                   />
                 </div>
@@ -562,7 +562,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                   id="empActivo"
                   checked={empActivo}
                   onChange={(e) => setEmpActivo(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                  className="rounded text-primary focus:ring-primary border-slate-300 cursor-pointer"
                 />
                 <label htmlFor="empActivo" className="cursor-pointer">Técnico activo para asignaciones de órdenes</label>
               </div>
@@ -579,7 +579,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-lg shadow-blue-600/10 transition-all disabled:opacity-50"
+                  className="bg-primary hover:bg-primary/90 text-white rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-lg shadow-primary/10 transition-all disabled:opacity-50"
                 >
                   {loading ? 'Guardando...' : 'Guardar Técnico'}
                 </button>
@@ -613,12 +613,12 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
           <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
             
             <div className="px-5 py-4 bg-slate-900 text-white flex items-center gap-2">
-              <KeyRound size={16} className="text-blue-400" />
+              <KeyRound size={16} className="text-primary/70" />
               <h3 className="text-sm font-bold">Crear Cuenta de Acceso</h3>
             </div>
 
             <form onSubmit={handleCreateAccess} className="p-5 space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 leading-normal">
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 text-xs text-primary-dark leading-normal">
                 <p className="font-bold">Asignación de credenciales:</p>
                 <p className="mt-1">Se creará un usuario en Supabase Auth y se vinculará directamente a la ficha del técnico <strong>{selectedEmpForAccess.nombre}</strong>.</p>
               </div>
@@ -639,7 +639,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                   type="password"
                   value={accessPassword}
                   onChange={(e) => setAccessPassword(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                   placeholder="Mínimo 6 caracteres"
                   required
                   autoFocus
@@ -658,7 +658,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                 <button
                   type="submit"
                   disabled={creatingAccess}
-                  className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-lg shadow-blue-600/10 transition-all disabled:opacity-50"
+                  className="bg-primary hover:bg-primary/90 text-white rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-lg shadow-primary/10 transition-all disabled:opacity-50"
                 >
                   {creatingAccess ? 'Creando Acceso...' : 'Crear Acceso'}
                 </button>
