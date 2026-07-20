@@ -18,6 +18,18 @@ interface Reporte {
   servicios: {
     codigo_servicio: string;
     nombre_cliente: string;
+    dest_direccion: string | null;
+    dest_observaciones: string | null;
+    num_documento: string | null;
+    tipos_servicios: {
+      nombre: string;
+    } | null;
+    servicios_materiales: {
+      id: number;
+      codigo: string | null;
+      descripcion: string;
+      cantidad: number;
+    }[];
   };
   empleado_nombre: string;
   tarifa_hora: number;
@@ -56,6 +68,9 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
   const [pagoNotas, setPagoNotas] = useState('');
   const [guardandoPago, setGuardandoPago] = useState(false);
 
+  // Modal Detalle del Servicio
+  const [selectedServicioDetalle, setSelectedServicioDetalle] = useState<Reporte | null>(null);
+
   // Refrescar lista de reportes
   const refreshData = async () => {
     setLoading(true);
@@ -66,7 +81,19 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
     ] = await Promise.all([
       supabase
         .from('reportes')
-        .select('id, orden_id, creador_id, horas_trabajadas, creado_en, estado_liquidacion, fecha_pago, medio_pago, notas_pago, servicios!inner(codigo_servicio, nombre_cliente)')
+        .select(`
+          id, orden_id, creador_id, horas_trabajadas, creado_en,
+          estado_liquidacion, fecha_pago, medio_pago, notas_pago,
+          servicios!inner(
+            codigo_servicio,
+            nombre_cliente,
+            dest_direccion,
+            dest_observaciones,
+            num_documento,
+            tipos_servicios(nombre),
+            servicios_materiales(id, codigo, descripcion, cantidad)
+          )
+        `)
         .order('creado_en', { ascending: false }),
       supabase
         .from('empleados')
@@ -625,25 +652,36 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
                           )}
                         </td>
                         <td className="px-5 py-3.5 text-center">
-                          {rep.estado_liquidacion === 'Pagado' ? (
+                          <div className="flex items-center justify-center gap-1.5">
                             <button
                               type="button"
-                              onClick={() => handleRevertirPago(rep.id)}
-                              className="text-red-500 hover:text-red-700 text-[10px] font-bold hover:underline transition-all cursor-pointer"
-                              title="Marcar nuevamente como Pendiente"
+                              onClick={() => setSelectedServicioDetalle(rep)}
+                              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-200 cursor-pointer transition-all flex items-center gap-1"
+                              title="Ver detalle del servicio"
                             >
-                              Revertir
+                              <FileText size={10} />
+                              <span>Detalle</span>
                             </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => openPagoModal(rep)}
-                              className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-md shadow-blue-600/10 cursor-pointer hover:scale-105 active:scale-95 transition-all flex items-center gap-1 mx-auto"
-                            >
-                              <CreditCard size={10} />
-                              <span>Pagar</span>
-                            </button>
-                          )}
+                            {rep.estado_liquidacion === 'Pagado' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleRevertirPago(rep.id)}
+                                className="text-red-500 hover:text-red-700 text-[10px] font-bold hover:underline transition-all cursor-pointer px-1"
+                                title="Marcar nuevamente como Pendiente"
+                              >
+                                Revertir
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openPagoModal(rep)}
+                                className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-md shadow-blue-600/10 cursor-pointer hover:scale-105 active:scale-95 transition-all flex items-center gap-1"
+                              >
+                                <CreditCard size={10} />
+                                <span>Pagar</span>
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -654,6 +692,86 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
           </div>
         )}
       </div>
+
+      {/* MODAL DETALLE DEL SERVICIO */}
+      {selectedServicioDetalle && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+            <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText size={16} className="text-blue-400" />
+                <h3 className="text-sm font-bold">Detalle del Servicio</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedServicioDetalle(null)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs space-y-1.5">
+                <p className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Servicio / Cliente</p>
+                <p className="text-slate-900 font-bold text-sm">{selectedServicioDetalle.servicios?.codigo_servicio} — {selectedServicioDetalle.servicios?.nombre_cliente}</p>
+                <p className="text-slate-600">{selectedServicioDetalle.servicios?.dest_direccion || 'Sin dirección registrada'}</p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded uppercase">
+                    {selectedServicioDetalle.servicios?.tipos_servicios?.nombre || 'General'}
+                  </span>
+                  {selectedServicioDetalle.servicios?.num_documento && (
+                    <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded">
+                      Ref. {selectedServicioDetalle.servicios.num_documento}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Trabajo a realizar / Notas</p>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  {selectedServicioDetalle.servicios?.dest_observaciones ? (
+                    <p className="text-xs text-slate-700 whitespace-pre-wrap">{selectedServicioDetalle.servicios.dest_observaciones}</p>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">Sin notas registradas</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <FileText size={12} />
+                  Materiales / Artículos
+                </p>
+                {selectedServicioDetalle.servicios?.servicios_materiales && selectedServicioDetalle.servicios.servicios_materiales.length > 0 ? (
+                  <ul className="space-y-1.5">
+                    {selectedServicioDetalle.servicios.servicios_materiales.map((mat) => (
+                      <li key={mat.id} className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 flex items-start justify-between gap-2">
+                        <span className="flex-1">{mat.descripcion}</span>
+                        <span className="shrink-0 text-[10px] text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">x{Number(mat.cantidad || 1).toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 font-medium">
+                    Sin materiales registrados — consulte con oficina
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Intervención registrada</p>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-700">{selectedServicioDetalle.empleado_nombre}</span>
+                  <span className="text-slate-500">{selectedServicioDetalle.horas_trabajadas.toFixed(1)}h · {Number(selectedServicioDetalle.horas_trabajadas * selectedServicioDetalle.tarifa_hora).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL REGISTRAR PAGO */}
       {isPagoModalOpen && selectedReporte && (

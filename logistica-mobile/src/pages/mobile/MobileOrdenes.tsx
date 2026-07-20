@@ -55,7 +55,7 @@ const MobileOrdenes = () => {
         try {
             let query = supabase
                 .from('servicios')
-                .select('id, codigo_servicio, nombre_cliente, dest_direccion, creado_en, estado_id, estados(nombre)');
+                .select('id, codigo_servicio, nombre_cliente, dest_direccion, dest_observaciones, creado_en, estado_id, estados(nombre)');
 
             // Si es un técnico/instalador, solo ve las órdenes asignadas a él
             if (roleName === 'Instalador' || roleName === 'Operario') {
@@ -87,7 +87,8 @@ const MobileOrdenes = () => {
                     cliente: item.nombre_cliente,
                     direccion: item.dest_direccion || 'Sin dirección registrada',
                     creado_en: item.creado_en,
-                    estado: item.estados?.nombre || 'Pendiente'
+                    estado: item.estados?.nombre || 'Pendiente',
+                    con_notas: !!(item.dest_observaciones && item.dest_observaciones.trim().length > 0)
                 }));
                 setOrdenes(ordenesMapeadas);
             }
@@ -170,10 +171,17 @@ const MobileOrdenes = () => {
                                     </div>
                                 )}
                                 <div className="flex justify-between items-start mb-2">
-                                    <span className="font-bold text-primary">{orden.id_legible}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-primary">{orden.id_legible}</span>
+                                        {orden.con_notas && (
+                                            <span className="text-[9px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded uppercase">
+                                                Con notas
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${
                                         orden.estado === 'Finalizado' || orden.estado === 'Terminado' ? 'bg-green-100 text-green-700' :
-                                        orden.estado === 'En Curso' || orden.estado === 'Iniciado' ? 'bg-blue-100 text-blue-700' : 
+                                        orden.estado === 'En Curso' || orden.estado === 'Iniciado' ? 'bg-blue-100 text-blue-700' :
                                         orden.estado === 'Incidencia' ? 'bg-red-100 text-red-700' :
                                         'bg-amber-100 text-amber-700'
                                     }`}>

@@ -16,6 +16,8 @@ const MobileDetalleOrden = () => {
     const [currentUserName, setCurrentUserName] = useState<string>('');
     const [currentUserRole, setCurrentUserRole] = useState<string>('');
     const [trabajadoresMap, setTrabajadoresMap] = useState<Map<string, { nombre: string; especialidad: string }>>(new Map());
+    const [materialesOrden, setMaterialesOrden] = useState<any[]>([]);
+    const [tipoServicioNombre, setTipoServicioNombre] = useState<string>('');
 
     // Formulario de reporte
     const [fecha, setFecha] = useState('');
@@ -87,8 +89,8 @@ const MobileDetalleOrden = () => {
         setCurrentUserName(profile?.nombre || userData?.user?.email?.split('@')[0] || 'Técnico');
 
         const [ordenReq, reportesReq, trabajadoresReq] = await Promise.all([
-            // Traer el servicio con su tienda y estado
-            supabase.from('servicios').select('*, tiendas(nombre), estados(nombre)').eq('id', id).single(),
+            // Traer el servicio con su tienda, estado, tipo de servicio y materiales
+            supabase.from('servicios').select('*, tiendas(nombre), estados(nombre), tipos_servicios(nombre), servicios_materiales(*)').eq('id', id).single(),
             // Traer las intervenciones de este servicio
             supabase.from('reportes').select('*').eq('orden_id', id).order('creado_en', { ascending: false }),
             // Traer empleados para mapear nombres en la UI
@@ -143,8 +145,12 @@ const MobileDetalleOrden = () => {
                 descripcion: item.dest_observaciones || '',
                 persona_contacto: item.dest_nombre || '',
                 telefono_contacto: item.dest_tel || '',
+                num_documento: item.num_documento || '',
                 creado_en: item.creado_en
             });
+
+            setTipoServicioNombre(item.tipos_servicios?.nombre || 'General');
+            setMaterialesOrden(item.servicios_materiales || []);
 
             if (item.creado_en) {
                 setFecha(new Date(item.creado_en).toISOString().split('T')[0]);
@@ -562,16 +568,57 @@ const MobileDetalleOrden = () => {
                       <p className="text-sm font-semibold text-slate-700 mt-1">{orden?.direccion || 'No especificada'}</p>
                  </div>
 
-                 {/* Observaciones / Detalles */}
-                 {orden?.descripcion && (
-                     <div className="pt-3 border-t border-slate-100 bg-blue-50/50 -mx-4 px-4 py-3">
-                          <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest leading-tight flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[14px]">assignment</span>
-                              Detalles de la Agenda
+                 {/* Información del Trabajo */}
+                 <div className="pt-3 border-t border-slate-100 bg-blue-50/50 -mx-4 px-4 py-4 space-y-4">
+                      <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest leading-tight flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">assignment</span>
+                          Información del Trabajo
+                      </p>
+
+                      {/* Tipo de servicio y documento de origen */}
+                      <div className="flex flex-wrap items-center gap-2">
+                          <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-1 rounded-lg uppercase">
+                              {tipoServicioNombre}
+                          </span>
+                          {orden?.num_documento && (
+                              <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded-lg">
+                                  Ref. {orden.num_documento}
+                              </span>
+                          )}
+                      </div>
+
+                      {/* Notas / trabajo a realizar */}
+                      <div>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-tight mb-1">Trabajo a realizar / Notas</p>
+                          {orden?.descripcion ? (
+                              <p className="text-sm font-medium text-slate-800 whitespace-pre-wrap">{orden.descripcion}</p>
+                          ) : (
+                              <p className="text-sm text-slate-400 italic">Sin notas registradas</p>
+                          )}
+                      </div>
+
+                      {/* Materiales / Artículos a instalar o llevar */}
+                      <div>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-tight mb-2 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[14px]">inventory_2</span>
+                              Materiales / Artículos
                           </p>
-                          <p className="text-sm font-medium text-slate-800 mt-1 whitespace-pre-wrap">{orden.descripcion}</p>
-                     </div>
-                 )}
+                          {materialesOrden.length > 0 ? (
+                              <ul className="space-y-1.5">
+                                  {materialesOrden.map((mat: any, idx: number) => (
+                                      <li key={idx} className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-2 flex items-start justify-between gap-2">
+                                          <span className="flex-1">{mat.descripcion}</span>
+                                          <span className="shrink-0 text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">x{Number(mat.cantidad || 1).toFixed(2)}</span>
+                                      </li>
+                                  ))}
+                              </ul>
+                          ) : (
+                              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 font-medium">
+                                  Sin materiales registrados — consulte con oficina
+                              </p>
+                          )}
+                      </div>
+                 </div>
 
                   {/* INTERVENCIONES REALIZADAS */}
                   <div className="pt-5 border-t border-slate-200">

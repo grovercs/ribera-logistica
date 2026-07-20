@@ -912,7 +912,7 @@ export default function ServicioModal({
                     {tab === 'materiales' ? 'Materiales' :
                      tab === 'trabajos' ? 'Serv. Propios' :
                      tab === 'externos' ? 'Serv. Externos' :
-                     tab === 'notas' ? 'Notas' : 'Incidencias'}
+                     tab === 'notas' ? 'Notas para el instalador' : 'Incidencias'}
                   </button>
                 ))}
               </div>
@@ -1052,12 +1052,13 @@ export default function ServicioModal({
                 {/* 4. PESTAÑA NOTAS */}
                 {activeTab === 'notas' && (
                   <div className="space-y-2 h-full flex flex-col">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase block">Notas y Observaciones Generales</label>
-                    <textarea 
+                    <label className="text-[10px] font-bold text-slate-500 uppercase block">Notas para el instalador</label>
+                    <p className="text-[10px] text-slate-400 mb-1">Estas notas las verá el instalador en la app móvil.</p>
+                    <textarea
                       value={destObservaciones}
                       onChange={(e) => setDestObservaciones(e.target.value)}
                       className="w-full flex-1 min-h-[180px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500 focus:bg-white resize-none"
-                      placeholder="Escribe aquí notas relativas a la entrega, dificultades o detalles del servicio..."
+                      placeholder="Indica aquí el trabajo a realizar, materiales a llevar, dificultades de acceso, indicaciones del cliente, etc."
                     />
                   </div>
                 )}

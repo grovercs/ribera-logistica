@@ -12,7 +12,19 @@ export default async function LiquidacionesPage() {
   ] = await Promise.all([
     supabase
       .from('reportes')
-      .select('id, orden_id, creador_id, horas_trabajadas, creado_en, estado_liquidacion, fecha_pago, medio_pago, notas_pago, servicios!inner(codigo_servicio, nombre_cliente)')
+      .select(`
+        id, orden_id, creador_id, horas_trabajadas, creado_en,
+        estado_liquidacion, fecha_pago, medio_pago, notas_pago,
+        servicios!inner(
+          codigo_servicio,
+          nombre_cliente,
+          dest_direccion,
+          dest_observaciones,
+          num_documento,
+          tipos_servicios(nombre),
+          servicios_materiales(id, codigo, descripcion, cantidad)
+        )
+      `)
       .order('creado_en', { ascending: false }),
     supabase
       .from('empleados')
