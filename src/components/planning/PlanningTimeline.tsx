@@ -66,6 +66,9 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
 
   const [days, setDays] = useState<Date[]>([]);
 
+  // Vista móvil: índice del día seleccionado dentro de la quincena
+  const [mobileSelectedDayIndex, setMobileSelectedDayIndex] = useState(0);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedServicioId, setSelectedServicioId] = useState<number | null>(null);
@@ -99,6 +102,11 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
       list.push(nextDay);
     }
     setDays(list);
+
+    // Al cambiar de quincena, situar el día móvil en "hoy" si cae dentro; si no, en el primer día
+    const todayStr = formatDateLocal(new Date());
+    const todayIndex = list.findIndex(d => formatDateLocal(d) === todayStr);
+    setMobileSelectedDayIndex(todayIndex >= 0 ? todayIndex : 0);
   }, [startDate]);
 
   // Cargar servicios en caliente cuando cambie la quincena (startDate)
@@ -248,21 +256,18 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
   };
 
   // Convertir hora de HH:MM:SS o HH:MM a minutos desde las 08:00
-  const timeToPercent = (timeStr: string | null) => {
+  const timeToMinutes = (timeStr: string | null) => {
     if (!timeStr) return 0;
     const [hStr, mStr] = timeStr.split(':');
-    const hours = parseInt(hStr, 10);
-    const minutes = parseInt(mStr, 10);
-    
-    // Minutos totales desde las 08:00
-    const startMinutes = 8 * 60; // 08:00
-    const currentMinutes = hours * 60 + minutes;
-    const diff = currentMinutes - startMinutes;
-    
-    // Total minutos de la jornada (13 horas = 780 minutos de 08:00 a 21:00)
+    return parseInt(hStr, 10) * 60 + parseInt(mStr, 10);
+  };
+
+  // Convertir hora de HH:MM:SS o HH:MM a porcentaje dentro de la jornada 08:00-21:00
+  const timeToPercent = (timeStr: string | null) => {
+    const minutes = timeToMinutes(timeStr);
+    const startMinutes = 8 * 60;
     const totalJornada = 13 * 60;
-    
-    // Devolver porcentaje de ancho
+    const diff = minutes - startMinutes;
     return Math.max(0, Math.min(100, (diff / totalJornada) * 100));
   };
 
@@ -404,6 +409,36 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
     return `${format(startDate)} - ${format(end)}`;
   };
 
+  // --- HELPERS PARA VISTA MÓVIL DE DÍA ---
+
+  const selectedDay = days[mobileSelectedDayIndex] || days[0];
+  const selectedDayStr = selectedDay ? formatDateLocal(selectedDay) : '';
+
+  const navigateDay = (direction: 'prev' | 'next') => {
+    setMobileSelectedDayIndex(prev => {
+      const next = direction === 'prev' ? prev - 1 : prev + 1;
+      return Math.max(0, Math.min(days.length - 1, next));
+    });
+  };
+
+  const handleMobileCellClick = (hourStr: string) => {
+    selectCellRange(selectedDayStr, hourStr);
+  };
+
+  const getMobileEventStyle = (s: any) => {
+    const startMin = timeToMinutes(s.hora_entrega_ini);
+    const endMin = timeToMinutes(s.hora_entrega_fin);
+    const startPct = timeToPercent(s.hora_entrega_ini);
+    const durationMin = Math.max(15, endMin - startMin);
+    const totalJornada = 13 * 60;
+    const heightPct = Math.max(2, (durationMin / totalJornada) * 100);
+
+    return {
+      top: `${startPct}%`,
+      height: `${heightPct}%`
+    };
+  };
+
   return (
     <div className="space-y-6 font-sans relative" ref={containerRef}>
       
@@ -468,7 +503,10 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
       {/* Grid del Planning (Timeline) */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
 
-        {/* Wrapper de scroll horizontal: en móvil se desliza para ver todas las horas.
+        {/* VISTA ESCRITORIO: timeline quincenal con scroll horizontal */}
+        <div className="hidden lg:block">
+
+        {/* Wrapper de scroll horizontal: en tablet se desliza para ver todas las horas.
             La columna de día queda fija (sticky) mientras se desliza. */}
         <div className="overflow-x-auto">
           <div className="min-w-[760px]">
@@ -659,6 +697,189 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
 
           </div>{/* /min-w */}
         </div>{/* /overflow-x-auto */}
+
+        </div>{/* /vista escritorio */}
+
+        {/* VISTA MÓVIL/TABLET VERTICAL: día individual con tira de días arriba */}
+        <div className="lg:hidden flex flex-col">
+
+          {/* Tira de días de la quincena */}
+          <div className="border-b border-slate-200 bg-slate-50">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200/60">
+              <button
+                type="button"
+                onClick={() => navigateDay('prev')}
+                disabled={mobileSelectedDayIndex <= 0}
+                className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 transition-colors"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <span className="text-sm font-black text-slate-800">
+                {selectedDay && selectedDay.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </span>
+              <button
+                type="button"
+                onClick={() => navigateDay('next')}
+                disabled={mobileSelectedDayIndex >= days.length - 1}
+                className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 transition-colors"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+
+            <div className="flex overflow-x-auto px-2 py-3 gap-2">
+              {days.map((date, idx) => {
+                const isSelected = idx === mobileSelectedDayIndex;
+                const isToday = formatDateLocal(date) === formatDateLocal(new Date());
+                const weekday = date.toLocaleDateString('es-ES', { weekday: 'narrow' });
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setMobileSelectedDayIndex(idx)}
+                    className={`flex-shrink-0 w-12 h-14 rounded-xl flex flex-col items-center justify-center text-xs font-bold transition-all border ${
+                      isSelected
+                        ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-primary/40'
+                    } ${isToday && !isSelected ? 'ring-2 ring-primary/30' : ''}`}
+                  >
+                    <span className="text-[9px] uppercase tracking-wider opacity-90">{weekday}</span>
+                    <span className="text-lg leading-none">{date.getDate()}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Grid vertical del día seleccionado */}
+          <div className="relative flex-1 min-h-[540px]">
+            <div className="absolute inset-0 flex">
+              {/* Eje de horas */}
+              <div className="w-14 flex-shrink-0 border-r border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-500 select-none flex flex-col">
+                {HOURS_RANGE.filter(h => h.endsWith(':00')).map(hour => (
+                  <div key={hour} className="flex-1 flex items-start justify-center pt-1">
+                    {hour.split(':')[0]}
+                  </div>
+                ))}
+              </div>
+
+              {/* Área de celdas + eventos */}
+              <div className="flex-1 relative flex flex-col">
+                {/* Líneas horarias de fondo */}
+                {HOURS_RANGE.filter(h => h.endsWith(':00')).map(hour => (
+                  <div key={hour} className="flex-1 border-b border-slate-200/60" />
+                ))}
+
+                {/* Franja horaria actual (solo si es el día de hoy) */}
+                {currentBlock && formatDateLocal(new Date()) === selectedDayStr && (
+                  <div
+                    className="absolute left-0 right-0 bg-yellow-100/35 pointer-events-none z-0 border-t border-red-500/90"
+                    style={{
+                      top: currentBlock.left,
+                      height: currentBlock.width
+                    }}
+                  />
+                )}
+
+                {/* Celdas clicables de media hora */}
+                <div className="absolute inset-0 flex flex-col">
+                  {HOURS_RANGE.map((hour) => {
+                    const isSel = isRangeSelected(selectedDayStr, hour);
+                    return (
+                      <button
+                        key={hour}
+                        type="button"
+                        onClick={() => handleMobileCellClick(hour)}
+                        className={`flex-1 w-full border-b border-slate-200/40 transition-colors ${
+                          isSel ? 'bg-primary/15' : 'hover:bg-primary/5'
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Botón flotante para crear orden */}
+                {selectedRange && selectedRange.date === selectedDayStr && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalInitialData({
+                        fecha: selectedRange.date,
+                        horaIni: selectedRange.horaIni,
+                        horaFin: selectedRange.horaFin
+                      });
+                      setSelectedServicioId(null);
+                      setIsModalOpen(true);
+                      setSelectedRange(null);
+                    }}
+                    className="absolute z-30 bg-primary hover:bg-primary/90 active:bg-primary-dark text-white rounded-full px-3 py-1.5 text-[10px] font-bold shadow-lg shadow-primary/30 flex items-center gap-1 transition-all active:scale-95 select-none border border-primary/40"
+                    style={{
+                      top: `${timeToPercent(selectedRange.horaIni)}%`,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <span>+ Crear orden</span>
+                  </button>
+                )}
+
+                {/* Bloques de servicio del día */}
+                {selectedDay && servicios
+                  .filter(s =>
+                    s.fecha_entrega === selectedDayStr &&
+                    (activeEmpleadoId === null ? s.empleado_id === null : s.empleado_id === activeEmpleadoId)
+                  )
+                  .map((s) => {
+                    let baseColor = s.tipos_servicios?.color || '#003366';
+                    const cleanColor = baseColor.trim().toLowerCase();
+                    const isDark =
+                      cleanColor === '#000000' ||
+                      cleanColor === '#000' ||
+                      cleanColor === 'black' ||
+                      cleanColor.startsWith('rgb(0') ||
+                      cleanColor.startsWith('rgba(0') ||
+                      cleanColor === '#111' ||
+                      cleanColor === '#111111' ||
+                      cleanColor === '#222' ||
+                      cleanColor === '#222222' ||
+                      cleanColor === '#333' ||
+                      cleanColor === '#333333' ||
+                      cleanColor === '#1d0000' ||
+                      cleanColor.includes('rgb(29') ||
+                      cleanColor.includes('rgba(29');
+                    if (isDark) baseColor = '#003366';
+                    const pos = getMobileEventStyle(s);
+
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => handleEventClick(s)}
+                        className="absolute left-1 right-1 rounded-lg flex flex-col justify-center px-2 text-left text-white text-[10px] font-bold shadow-md active:scale-[0.98] transition-transform z-10 border touch-manipulation overflow-hidden"
+                        style={{
+                          top: pos.top,
+                          height: pos.height,
+                          backgroundColor: baseColor,
+                          borderColor: `${baseColor}cc`,
+                          textShadow: '0 1px 2px rgba(0,0,0,0.15)'
+                        }}
+                      >
+                        <div className="flex items-center gap-1">
+                          {s.incidencias && <AlertTriangle size={10} className="text-white flex-shrink-0 animate-pulse" />}
+                          <span className="truncate">{s.nombre_cliente}</span>
+                        </div>
+                        <span className="opacity-90 text-[9px] font-medium truncate">
+                          {s.hora_entrega_ini?.slice(0, 5)} - {s.hora_entrega_fin?.slice(0, 5)}
+                        </span>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+
+        </div>{/* /vista móvil */}
 
       </div>
 
