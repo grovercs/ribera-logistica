@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Edit2, CheckCircle2, XCircle, Phone, UserPlus, Settings, Store, Euro, Landmark, Building2 } from 'lucide-react';
-import { guardarEmpleado, toggleEmpleadoActivo } from '@/app/(dashboard)/configuracion/actions';
+import { Plus, Edit2, CheckCircle2, XCircle, Phone, UserPlus, Settings, Store, Euro, Landmark, Building2, KeyRound } from 'lucide-react';
+import { guardarEmpleado, toggleEmpleadoActivo, crearAccesoUsuario } from '@/app/(dashboard)/configuracion/actions';
 import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface Empleado {
@@ -18,6 +18,7 @@ interface Empleado {
   email: string | null;
   iban: string | null;
   tarifa_hora: number | string;
+  perfil_id?: string | null;
 }
 
 interface Tienda {
@@ -53,6 +54,12 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
   const [empEmail, setEmpEmail] = useState('');
   const [empIban, setEmpIban] = useState('');
   const [empTarifaHora, setEmpTarifaHora] = useState<string>('0.00');
+
+  // Modal de Crear Acceso
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
+  const [selectedEmpForAccess, setSelectedEmpForAccess] = useState<Empleado | null>(null);
+  const [accessPassword, setAccessPassword] = useState('');
+  const [creatingAccess, setCreatingAccess] = useState(false);
 
   // Técnico pendiente de (des)activar, esperando confirmación del usuario
   const [pendingToggle, setPendingToggle] = useState<Empleado | null>(null);
@@ -129,6 +136,38 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
       setIsModalOpen(false);
     } else {
       alert(`Error al guardar: ${res.error}`);
+    }
+  };
+
+  const handleOpenAccessModal = (emp: Empleado) => {
+    setSelectedEmpForAccess(emp);
+    setAccessPassword('');
+    setIsAccessModalOpen(true);
+  };
+
+  const handleCreateAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedEmpForAccess || !selectedEmpForAccess.email) return;
+    if (accessPassword.length < 6) {
+      alert("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+
+    setCreatingAccess(true);
+    const res = await crearAccesoUsuario(
+      selectedEmpForAccess.id,
+      selectedEmpForAccess.email,
+      accessPassword,
+      selectedEmpForAccess.nombre
+    );
+    setCreatingAccess(false);
+
+    if (res.success) {
+      alert(`Acceso creado correctamente para ${selectedEmpForAccess.nombre} (${selectedEmpForAccess.email}).`);
+      setIsAccessModalOpen(false);
+      await refreshList();
+    } else {
+      alert(`Error al crear acceso: ${res.error}`);
     }
   };
 
@@ -217,6 +256,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                       <th className="px-5 py-3.5 w-36">Teléfono</th>
                       <th className="px-5 py-3.5 w-24 text-right">Tarifa/h</th>
                       <th className="px-5 py-3.5 w-28 text-center">Estado</th>
+                      <th className="px-5 py-3.5 w-36 text-center">Usuario de Acceso</th>
                       <th className="px-5 py-3.5 w-24 text-center">Acciones</th>
                     </tr>
                   </thead>
@@ -281,6 +321,25 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
                                 </>
                               )}
                             </button>
+                          </td>
+                          <td className="px-5 py-3.5 text-center">
+                            {emp.perfil_id ? (
+                              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full inline-flex items-center gap-1">
+                                <CheckCircle2 size={10} />
+                                <span>Con Acceso</span>
+                              </span>
+                            ) : emp.email ? (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenAccessModal(emp)}
+                                className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-all cursor-pointer inline-flex items-center gap-1"
+                              >
+                                <UserPlus size={10} />
+                                <span>Crear Acceso</span>
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic font-medium">Sin email</span>
+                            )}
                           </td>
                           <td className="px-5 py-3.5 text-center">
                             <button
@@ -547,6 +606,68 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
         onConfirm={handleToggleActivo}
         onCancel={() => { if (!toggling) setPendingToggle(null); }}
       />
+
+      {/* Modal Crear Acceso Usuario */}
+      {isAccessModalOpen && selectedEmpForAccess && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            
+            <div className="px-5 py-4 bg-slate-900 text-white flex items-center gap-2">
+              <KeyRound size={16} className="text-blue-400" />
+              <h3 className="text-sm font-bold">Crear Cuenta de Acceso</h3>
+            </div>
+
+            <form onSubmit={handleCreateAccess} className="p-5 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 leading-normal">
+                <p className="font-bold">Asignación de credenciales:</p>
+                <p className="mt-1">Se creará un usuario en Supabase Auth y se vinculará directamente a la ficha del técnico <strong>{selectedEmpForAccess.nombre}</strong>.</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase block">Usuario (Email)</label>
+                <input
+                  type="text"
+                  value={selectedEmpForAccess.email || ''}
+                  disabled
+                  className="w-full bg-slate-100 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase block">Contraseña de Acceso *</label>
+                <input
+                  type="password"
+                  value={accessPassword}
+                  onChange={(e) => setAccessPassword(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              {/* Botones de Pie */}
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAccessModalOpen(false)}
+                  className="bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold cursor-pointer transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingAccess}
+                  className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-lg shadow-blue-600/10 transition-all disabled:opacity-50"
+                >
+                  {creatingAccess ? 'Creando Acceso...' : 'Crear Acceso'}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

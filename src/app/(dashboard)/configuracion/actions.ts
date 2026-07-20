@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 
 interface EmpleadoInput {
@@ -109,5 +110,64 @@ export async function toggleEmpleadoActivo(id: number, activoActual: boolean) {
   } catch (error: any) {
     console.error("Error al cambiar estado de empleado:", error);
     return { error: error.message || 'Error al cambiar estado.' };
+  }
+}
+
+/**
+ * Crea una cuenta de usuario en Supabase Auth y la vincula con la ficha de empleado
+ */
+export async function crearAccesoUsuario(empleadoId: number, email: string, contrasena: string, nombreEmpleado: string) {
+  const adminClient = createAdminClient();
+
+  if (!email || email.trim() === '') {
+    return { error: 'El email es obligatorio para crear una cuenta de acceso.' };
+  }
+  if (!contrasena || contrasena.length < 6) {
+    return { error: 'La contraseña debe tener al menos 6 caracteres.' };
+  }
+
+  try {
+    console.log(`Intentando crear usuario en Supabase Auth: ${email}`);
+    
+    // 1. Crear el usuario en Supabase Auth
+    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+      email: email.trim().toLowerCase(),
+      password: contrasena,
+      email_confirm: true, // Confirmado automáticamente
+      user_metadata: { 
+        nombre: nombreEmpleado,
+        rol: 'Instalador' // Por defecto rol de colaborador/operario
+      }
+    });
+
+    if (authError) {
+      throw authError;
+    }
+
+    if (!authData?.user) {
+      throw new Error('No se pudo crear el objeto de usuario en Supabase Auth.');
+    }
+
+    console.log(`Usuario creado en Auth con ID: ${authData.user.id}. Vinculando con empleado ID: ${empleadoId}`);
+
+    // 2. Asociar el perfil_id al empleado
+    const { error: dbError } = await adminClient
+      .from('empleados')
+      .update({ perfil_id: authData.user.id })
+      .eq('id', empleadoId);
+
+    if (dbError) {
+      throw dbError;
+    }
+
+    revalidatePath('/configuracion');
+    revalidatePath('/planning');
+    revalidatePath('/agenda');
+    revalidatePath('/servicios');
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error al crear cuenta de acceso:", error);
+    return { error: error.message || 'Error al crear la cuenta de acceso.' };
   }
 }
