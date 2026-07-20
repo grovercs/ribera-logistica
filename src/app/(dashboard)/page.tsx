@@ -60,12 +60,12 @@ export default async function DashboardPage() {
   const { data: recientes } = await supabase
     .from('servicios')
     .select(`
-      id, 
-      codigo_servicio, 
-      nombre_cliente, 
-      creado_en, 
-      estados(nombre), 
-      tipos_servicios(nombre)
+      id,
+      codigo_servicio,
+      nombre_cliente,
+      creado_en,
+      estados(nombre),
+      empleados(nombre)
     `)
     .order('creado_en', { ascending: false })
     .limit(5);
@@ -170,7 +170,7 @@ export default async function DashboardPage() {
                   <tr>
                     <th className="px-6 py-4">Código</th>
                     <th className="px-6 py-4">Cliente</th>
-                    <th className="px-6 py-4">Tipo Servicio</th>
+                    <th className="px-6 py-4">Técnico / Empresa</th>
                     <th className="px-6 py-4">Estado</th>
                   </tr>
                 </thead>
@@ -186,7 +186,7 @@ export default async function DashboardPage() {
                       <tr key={s.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4 font-bold text-slate-800">{s.codigo_servicio}</td>
                         <td className="px-6 py-4 truncate max-w-[200px]">{s.nombre_cliente}</td>
-                        <td className="px-6 py-4 text-xs">{(s.tipos_servicios as any)?.nombre || 'General'}</td>
+                        <td className="px-6 py-4 text-xs">{(s.empleados as any)?.nombre || '<span className="text-slate-400 italic">Sin asignar</span>'}</td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                             (s.estados as any)?.nombre === 'Terminado' || (s.estados as any)?.nombre === 'Facturado/Cerrado'
