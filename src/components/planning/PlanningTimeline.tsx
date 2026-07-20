@@ -607,8 +607,8 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                         onClick={() => handleCellClick(dateStr, hour)}
                         className={`flex-1 last:border-0 transition-all touch-pan-x ${
                           hour.endsWith(':00')
-                            ? 'border-r border-dashed border-slate-200/40 bg-white'
-                            : 'border-r border-slate-300 bg-white'
+                            ? 'border-r border-slate-200 bg-slate-50'
+                            : 'border-r border-slate-100 bg-white'
                         } ${
                           isSel
                             ? '!bg-primary/15 !border-primary/30'
@@ -808,10 +808,22 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
 
               {/* Área de celdas + eventos */}
               <div className="flex-1 relative flex flex-col">
-                {/* Líneas horarias de fondo */}
-                {HOURS_RANGE.filter(h => h.endsWith(':00')).map(hour => (
-                  <div key={hour} className="flex-1 border-b border-slate-200/60" />
-                ))}
+                {/* Líneas horarias de fondo con alternancia hora/media hora */}
+                {HOURS_RANGE.map((hour, idx) => {
+                  const isWholeHour = hour.endsWith(':00');
+                  const nextHour = HOURS_RANGE[idx + 1];
+                  const isLastHalfBeforeHour = nextHour && nextHour.endsWith(':00');
+                  return (
+                    <div
+                      key={hour}
+                      className={`flex-1 border-b ${
+                        isWholeHour || isLastHalfBeforeHour
+                          ? 'border-slate-200 bg-slate-50/40'
+                          : 'border-slate-100 bg-white'
+                      }`}
+                    />
+                  );
+                })}
 
                 {/* Franja horaria actual (solo si es el día de hoy) */}
                 {currentBlock && formatDateLocal(new Date()) === selectedDayStr && (
@@ -833,8 +845,12 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                         key={hour}
                         type="button"
                         onClick={() => handleMobileCellClick(hour)}
-                        className={`flex-1 w-full border-b border-slate-200/40 transition-colors ${
-                          isSel ? 'bg-primary/15' : 'hover:bg-primary/5'
+                        className={`flex-1 w-full border-b transition-colors ${
+                          hour.endsWith(':00')
+                            ? 'border-slate-200 bg-slate-50/40'
+                            : 'border-slate-100 bg-white'
+                        } ${
+                          isSel ? '!bg-primary/15 !border-primary/30' : 'hover:bg-primary/5'
                         }`}
                       />
                     );
