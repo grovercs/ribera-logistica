@@ -53,3 +53,6 @@ ribera.sql
 
 # large images/resources
 /imagenes/
+
+# local auth state
+.auth-state.json

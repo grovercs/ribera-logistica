@@ -40,12 +40,17 @@ const MobileDetalleOrden = () => {
     const [uploadingFactura, setUploadingFactura] = useState(false);
     const [facturaPreviews, setFacturaPreviews] = useState<string[]>([]);
     
-    // Canvas para firma
+    // Canvas para firma y estados de reporte
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [hasSignature, setHasSignature] = useState(false);
     const [showForm, setShowForm] = useState(false); 
     const [viewingReport, setViewingReport] = useState<any>(null); 
+    
+    // Nuevos estados para el flujo de firma mejorada y conclusión de orden
+    const [concluido, setConcluido] = useState(false);
+    const [showSignatureModal, setShowSignatureModal] = useState(false);
+    const [firmaDataUrl, setFirmaDataUrl] = useState<string | null>(null);
 
     useEffect(() => {
         if (showForm) {
@@ -180,6 +185,8 @@ const MobileDetalleOrden = () => {
         setSelectedHora(0);
         setSelectedMinuto(0);
         setFecha(new Date().toISOString().split('T')[0]);
+        setFirmaDataUrl(null);
+        setConcluido(orden?.estado_id === 3);
 
         const ctx = canvasRef.current?.getContext('2d');
         if (ctx && canvasRef.current) {
@@ -200,6 +207,8 @@ const MobileDetalleOrden = () => {
                          rep.firma_url.startsWith('http') && 
                          rep.firma_url.length > 50; 
         setHasSignature(isSigned);
+        setFirmaDataUrl(rep.firma_url || null);
+        setConcluido(orden?.estado_id === 3);
         
         const ctx = canvasRef.current?.getContext('2d');
         ctx?.clearRect(0, 0, canvasRef.current?.width || 0, canvasRef.current?.height || 0);
@@ -301,9 +310,8 @@ const MobileDetalleOrden = () => {
         setFacturaPreviews(prev => prev.filter((_, i) => i !== index));
     };
 
-    // Lógica para firma táctil/ratón en canvas
+    // Lógica para firma táctil/ratón en canvas dentro del modal
     const startDrawing = (e: any) => {
-        if (reporte?.firma_url) return; 
         setIsDrawing(true);
         draw(e);
     };
@@ -345,16 +353,47 @@ const MobileDetalleOrden = () => {
         ctx.moveTo(x, y);
     };
 
+    const openSignatureModal = () => {
+        setHasSignature(false);
+        setShowSignatureModal(true);
+        setTimeout(() => {
+            if (canvasRef.current) {
+                const ctx = canvasRef.current.getContext('2d');
+                ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            }
+        }, 50);
+    };
+
+    const saveModalSignature = () => {
+        if (canvasRef.current && hasSignature) {
+            const dataUrl = canvasRef.current.toDataURL('image/png');
+            setFirmaDataUrl(dataUrl);
+            setShowSignatureModal(false);
+        }
+    };
+
+    const cancelModalSignature = () => {
+        setShowSignatureModal(false);
+        if (!firmaDataUrl) {
+            setHasSignature(false);
+        }
+    };
+
+    const clearModalCanvas = () => {
+        if (canvasRef.current) {
+            const ctx = canvasRef.current.getContext('2d');
+            ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        }
+        setHasSignature(false);
+    };
+
     const clearSignature = () => {
         if (!window.confirm('¿Deseas limpiar la firma actual?')) return;
         
         if (reporte?.firma_url) {
             setReporte({...reporte, firma_url: null});
         }
-        if (canvasRef.current) {
-            const ctx = canvasRef.current.getContext('2d');
-            ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-        }
+        setFirmaDataUrl(null);
         setHasSignature(false);
     };
 
@@ -366,32 +405,52 @@ const MobileDetalleOrden = () => {
                 return;
             }
 
+            if (concluido && !firmaDataUrl) {
+                setCustomError("La firma del cliente es obligatoria para marcar el trabajo como Terminado.");
+                return;
+            }
+
             setSubmitting(true);
-            let signatureUrl = reporte?.firma_url;
+            let signatureUrl = null;
 
-            if (!hasSignature) {
-                signatureUrl = null;
-            } 
-            else if (canvasRef.current && (!reporte?.firma_url || canvasRef.current.toDataURL('image/png') !== reporte.firma_url)) {
-                try {
-                    const blob = await new Promise<Blob>((resolve) => canvasRef.current!.toBlob((b) => resolve(b!), 'image/png'));
-                    const fileName = `firmas/${id}/${Date.now()}-firma.png`;
-                    const { data: uploadData, error: uploadError } = await supabase.storage
-                        .from('fotos-reportes')
-                        .upload(fileName, blob, { contentType: 'image/png', upsert: true });
+            if (firmaDataUrl) {
+                if (firmaDataUrl.startsWith('data:image/png;base64,')) {
+                    // Nueva firma dibujada en el modal, convertir dataURL a Blob y subir a Supabase
+                    try {
+                        const dataURLtoBlob = (dataurl: string) => {
+                            const arr = dataurl.split(',');
+                            const mime = arr[0].match(/:(.*?);/)![1];
+                            const bstr = atob(arr[1]);
+                            let n = bstr.length;
+                            const u8arr = new Uint8Array(n);
+                            while (n--) {
+                                u8arr[n] = bstr.charCodeAt(n);
+                            }
+                            return new Blob([u8arr], { type: mime });
+                        };
 
-                    if (uploadError) throw uploadError;
+                        const blob = dataURLtoBlob(firmaDataUrl);
+                        const fileName = `firmas/${id}/${Date.now()}-firma.png`;
+                        const { data: uploadData, error: uploadError } = await supabase.storage
+                            .from('fotos-reportes')
+                            .upload(fileName, blob, { contentType: 'image/png', upsert: true });
 
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('fotos-reportes')
-                        .getPublicUrl(uploadData.path);
-                    
-                    signatureUrl = publicUrl;
-                } catch (err) {
-                    console.error('Error uploading signature:', err);
-                    setCustomError("Error al subir la firma de conformidad: " + (err instanceof Error ? err.message : String(err)));
-                    setSubmitting(false);
-                    return;
+                        if (uploadError) throw uploadError;
+
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('fotos-reportes')
+                            .getPublicUrl(uploadData.path);
+                        
+                        signatureUrl = publicUrl;
+                    } catch (err) {
+                        console.error('Error uploading signature:', err);
+                        setCustomError("Error al subir la firma de conformidad: " + (err instanceof Error ? err.message : String(err)));
+                        setSubmitting(false);
+                        return;
+                    }
+                } else {
+                    // Firma ya subida previamente
+                    signatureUrl = firmaDataUrl;
                 }
             }
 
@@ -428,8 +487,8 @@ const MobileDetalleOrden = () => {
             }
             
             // Actualizar el estado de la orden (servicio) en Ribera
-            // 3 = Terminado (si se firmó), 2 = En curso (si no se firmó)
-            const newEstadoId = signatureUrl ? 3 : 2; 
+            // 3 = Terminado, 2 = En curso
+            const newEstadoId = concluido ? 3 : 2; 
             
             const { error: errorServicio } = await supabase
                 .from('servicios')
@@ -761,45 +820,76 @@ const MobileDetalleOrden = () => {
                                 )}
                             </div>
 
+                            {/* CONCLUSIÓN DEL TRABAJO / ESTADO TRAS LA VISITA */}
+                            <div className="space-y-3 pt-2">
+                                <label className="block text-xs font-bold text-slate-800 pl-1 font-sans">Estado tras la visita (Conclusión de la orden)</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setConcluido(false)}
+                                        className={`py-3.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all border shadow-sm ${
+                                            !concluido 
+                                                ? 'bg-amber-500 text-white border-amber-500 shadow-amber-100' 
+                                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">pending</span>
+                                        SIGUE EN CURSO
+                                    </button>
+                                    
+                                    <button
+                                        type="button"
+                                        onClick={() => setConcluido(true)}
+                                        className={`py-3.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all border shadow-sm ${
+                                            concluido 
+                                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-emerald-100' 
+                                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                                        TRABAJO TERMINADO
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* FIRMA DE CONFORMIDAD */}
                             <div className="space-y-4 pt-2">
                                 <h2 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest pl-1">Conformidad del Cliente (Firma)</h2>
-                                <div className="bg-white border-2 border-dashed border-slate-300 rounded-xl overflow-hidden touch-none relative h-[180px]">
-                                    {reporte?.firma_url ? (
-                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50">
-                                            <img src={reporte.firma_url} alt="Firma Guardada" className="h-full object-contain" />
+                                <div className="bg-white border-2 border-dashed border-slate-300 rounded-xl overflow-hidden relative h-[180px] flex flex-col items-center justify-center">
+                                    {firmaDataUrl ? (
+                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 p-2 relative">
+                                            <img src={firmaDataUrl} alt="Firma del Cliente" className="h-full object-contain select-none pointer-events-none" />
                                         </div>
                                     ) : (
-                                        <>
-                                            {!hasSignature && (
-                                                <span className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-300 text-sm select-none">
-                                                    Firmar aquí en pantalla
-                                                </span>
-                                            )}
-                                            <canvas 
-                                                ref={canvasRef}
-                                                className="w-full h-full relative z-10 cursor-crosshair"
-                                                onMouseDown={startDrawing}
-                                                onMouseUp={stopDrawing}
-                                                onMouseOut={stopDrawing}
-                                                onMouseMove={draw}
-                                                onTouchStart={startDrawing}
-                                                onTouchEnd={stopDrawing}
-                                                onTouchCancel={stopDrawing}
-                                                onTouchMove={draw}
-                                                width={600}
-                                                height={300}
-                                                style={{ width: '100%', height: '100%' }}
-                                            />
-                                        </>
+                                        <div className="flex flex-col items-center justify-center gap-2 text-slate-400 select-none">
+                                            <span className="material-symbols-outlined text-[32px] text-slate-300">gesture</span>
+                                            <span className="text-xs">Sin firma registrada</span>
+                                        </div>
                                     )}
                                 </div>
                                 <div className="flex justify-between items-center px-1">
-                                    <p className="text-[10px] text-slate-400 italic">Requerido para finalizar el servicio</p>
-                                    <button onClick={clearSignature} className="flex items-center gap-1 text-primary font-bold text-xs">
-                                        <span className="material-symbols-outlined text-[14px]">ink_eraser</span>
-                                        Limpiar Firma
-                                    </button>
+                                    {firmaDataUrl ? (
+                                        <button 
+                                            type="button"
+                                            onClick={clearSignature} 
+                                            className="flex items-center gap-1 text-red-500 font-bold text-xs bg-red-50 hover:bg-red-100/60 px-3 py-1.5 rounded-lg active:scale-95 transition-all"
+                                        >
+                                            <span className="material-symbols-outlined text-[14px]">delete</span>
+                                            Borrar Firma
+                                        </button>
+                                    ) : (
+                                        <button 
+                                            type="button"
+                                            onClick={openSignatureModal} 
+                                            className="flex items-center gap-1.5 text-primary font-bold text-xs bg-slate-100 hover:bg-slate-200/80 px-4 py-2.5 rounded-xl active:scale-95 transition-all shadow-sm"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">edit_square</span>
+                                            FIRMAR
+                                        </button>
+                                    )}
+                                    <p className="text-[10px] text-slate-400 italic">
+                                        {concluido ? 'Requerido para guardar como Terminado' : 'Opcional si sigue en curso'}
+                                    </p>
                                 </div>
                             </div>
 
@@ -839,6 +929,76 @@ const MobileDetalleOrden = () => {
                                         {submitting ? 'sync' : 'done_all'}
                                     </span>
                                     {submitting ? 'GUARDANDO...' : (reporte?.id ? 'GUARDAR CAMBIOS' : 'GUARDAR PARTE DE TRABAJO')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL PARA FIRMA DEL CLIENTE */}
+            {showSignatureModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div 
+                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+                        onClick={cancelModalSignature}
+                    />
+
+                    <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in scale-in duration-200">
+                        <div className="bg-slate-50 px-6 py-4 flex items-center justify-between border-b border-slate-100">
+                            <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary">edit_square</span>
+                                <h3 className="text-base font-black text-slate-800 tracking-tight">Firma de Conformidad</h3>
+                            </div>
+                            <button 
+                                onClick={cancelModalSignature}
+                                className="text-slate-400 hover:text-slate-600 active:scale-95 transition-all p-1"
+                            >
+                                <span className="material-symbols-outlined text-[24px]">close</span>
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+                                Por favor, indique al cliente que dibuje su firma sobre el lienzo en blanco. Intente realizar trazos firmes.
+                            </p>
+                            
+                            <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl overflow-hidden touch-none relative h-[240px] flex items-center justify-center">
+                                <canvas 
+                                    ref={canvasRef}
+                                    className="w-full h-full relative z-10 cursor-crosshair bg-slate-50"
+                                    onMouseDown={startDrawing}
+                                    onMouseUp={stopDrawing}
+                                    onMouseOut={stopDrawing}
+                                    onMouseMove={draw}
+                                    onTouchStart={startDrawing}
+                                    onTouchEnd={stopDrawing}
+                                    onTouchCancel={stopDrawing}
+                                    onTouchMove={draw}
+                                    width={600}
+                                    height={300}
+                                    style={{ width: '100%', height: '100%' }}
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={clearModalCanvas}
+                                    className="flex-1 border border-slate-200 text-slate-600 font-bold py-3.5 rounded-xl hover:bg-slate-50 active:scale-95 transition-all text-xs flex justify-center items-center gap-1.5"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                                    LIMPIAR LIENZO
+                                </button>
+                                
+                                <button
+                                    type="button"
+                                    onClick={saveModalSignature}
+                                    disabled={!hasSignature}
+                                    className="flex-1 bg-primary disabled:opacity-50 text-white font-bold py-3.5 rounded-xl hover:bg-primary/90 active:scale-95 transition-all text-xs flex justify-center items-center gap-1.5 shadow-md"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">done</span>
+                                    CONFIRMAR FIRMA
                                 </button>
                             </div>
                         </div>

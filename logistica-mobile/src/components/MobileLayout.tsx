@@ -44,7 +44,7 @@ const MobileLayout = () => {
                     <div className="px-4 py-3 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-[24px]">construction</span>
-                            <h1 className="font-bold text-lg leading-none">Fernaguez</h1>
+                            <h1 className="font-bold text-lg leading-none">BigMat Ribera</h1>
                         </div>
                         <button className="p-1 rounded-full hover:bg-white/20 transition-colors">
                             <span className="material-symbols-outlined text-[24px]">menu</span>
