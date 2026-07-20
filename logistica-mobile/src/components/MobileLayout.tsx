@@ -41,10 +41,13 @@ const MobileLayout = () => {
             {/* Solo mostramos la barra superior móvil si no estamos en el login */}
             {!isLoginPage && (
                 <header className="bg-primary text-white shadow-md sticky top-0 z-20">
-                    <div className="px-4 py-3 flex items-center justify-between">
+                    <div className="px-4 py-2.5 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[24px]">construction</span>
-                            <h1 className="font-bold text-lg leading-none">BigMat Ribera</h1>
+                            <img
+                                src="/logo-ribera.png"
+                                alt="BigMat Ribera"
+                                className="h-8 w-auto bg-white rounded px-1.5 py-0.5 object-contain"
+                            />
                         </div>
                         <button className="p-1 rounded-full hover:bg-white/20 transition-colors">
                             <span className="material-symbols-outlined text-[24px]">menu</span>

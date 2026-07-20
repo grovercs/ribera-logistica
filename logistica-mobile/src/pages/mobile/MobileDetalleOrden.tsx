@@ -961,7 +961,7 @@ const MobileDetalleOrden = () => {
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
                                     disabled={uploadingFoto}
-                                    className="w-full bg-[#ff7b1c] text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all flex justify-center items-center gap-2"
+                                    className="w-full bg-accent text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all flex justify-center items-center gap-2"
                                 >
                                     <span className="material-symbols-outlined">photo_camera</span>
                                     {uploadingFoto ? 'SUBIENDO...' : 'AÑADIR FOTOS DE LA VISITA'}
@@ -1204,7 +1204,7 @@ const MobileDetalleOrden = () => {
                                         resetForm();
                                         setShowForm(true);
                                     }}
-                                    className="w-full bg-[#ff7b1c] text-white font-black py-3.5 rounded-xl hover:bg-[#e06915] active:scale-95 transition-all text-sm shadow-md"
+                                    className="w-full bg-accent text-white font-black py-3.5 rounded-xl hover:bg-accent/90 active:scale-95 transition-all text-sm shadow-md"
                                 >
                                     Añadir otro parte
                                 </button>
