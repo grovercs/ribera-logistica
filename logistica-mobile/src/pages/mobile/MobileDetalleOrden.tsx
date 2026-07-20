@@ -428,19 +428,28 @@ const MobileDetalleOrden = () => {
         // 3 = Terminado (si se firmó), 2 = En curso (si no se firmó)
         const newEstadoId = signatureUrl ? 3 : 2; 
         
-        await supabase
+        const { error: errorServicio } = await supabase
             .from('servicios')
             .update({ 
                 estado_id: newEstadoId,
             })
             .eq('id', id);
 
+        if (errorServicio) {
+            console.error("Error updating orden status:", errorServicio);
+            alert("Aviso: El reporte se ha guardado, pero no se pudo actualizar el estado de la orden: " + errorServicio.message);
+        }
+
         setSubmitting(false);
-        alert("¡Reporte guardado correctamente!");
-        setShowForm(false); 
-        fetchOrden(); 
-        localStorage.setItem('last_active_order', id || '');
-        navigate('/m/ordenes');
+        await fetchOrden(); 
+
+        if (window.confirm("¡Reporte técnico guardado correctamente!\n\n¿Deseas volver al listado de órdenes? (Aceptar para volver, Cancelar para quedarte en esta pantalla)")) {
+            setShowForm(false); 
+            localStorage.setItem('last_active_order', id || '');
+            navigate('/m/ordenes');
+        } else {
+            setShowForm(false);
+        }
     };
 
     if (loading) return <div className="p-8 text-center text-slate-500 font-bold mt-20">Cargando...</div>;
