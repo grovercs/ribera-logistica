@@ -358,97 +358,103 @@ const MobileDetalleOrden = () => {
 
     // Guardado del reporte
     const handleComplete = async () => {
-        if (!trabajoRealizado.trim()) {
-            alert("Por favor, introduce la descripción del trabajo realizado.");
-            return;
-        }
+        try {
+            if (!trabajoRealizado || !trabajoRealizado.trim()) {
+                alert("Por favor, introduce la descripción del trabajo realizado.");
+                return;
+            }
 
-        setSubmitting(true);
-        let signatureUrl = reporte?.firma_url;
+            setSubmitting(true);
+            let signatureUrl = reporte?.firma_url;
 
-        if (!hasSignature) {
-            signatureUrl = null;
-        } 
-        else if (canvasRef.current && (!reporte?.firma_url || canvasRef.current.toDataURL('image/png') !== reporte.firma_url)) {
-            try {
-                const blob = await new Promise<Blob>((resolve) => canvasRef.current!.toBlob((b) => resolve(b!), 'image/png'));
-                const fileName = `firmas/${id}/${Date.now()}-firma.png`;
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('fotos-reportes')
-                    .upload(fileName, blob, { contentType: 'image/png', upsert: true });
+            if (!hasSignature) {
+                signatureUrl = null;
+            } 
+            else if (canvasRef.current && (!reporte?.firma_url || canvasRef.current.toDataURL('image/png') !== reporte.firma_url)) {
+                try {
+                    const blob = await new Promise<Blob>((resolve) => canvasRef.current!.toBlob((b) => resolve(b!), 'image/png'));
+                    const fileName = `firmas/${id}/${Date.now()}-firma.png`;
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('fotos-reportes')
+                        .upload(fileName, blob, { contentType: 'image/png', upsert: true });
 
-                if (uploadError) throw uploadError;
+                    if (uploadError) throw uploadError;
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('fotos-reportes')
-                    .getPublicUrl(uploadData.path);
-                
-                signatureUrl = publicUrl;
-            } catch (err) {
-                console.error('Error uploading signature:', err);
-                alert("Error al subir la firma de conformidad.");
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('fotos-reportes')
+                        .getPublicUrl(uploadData.path);
+                    
+                    signatureUrl = publicUrl;
+                } catch (err) {
+                    console.error('Error uploading signature:', err);
+                    alert("Error al subir la firma de conformidad: " + (err instanceof Error ? err.message : String(err)));
+                    setSubmitting(false);
+                    return;
+                }
+            }
+
+            const parsedHoras = selectedHora + (selectedMinuto / 60);
+
+            const reportData: any = {
+                orden_id: parseInt(id!),
+                creador_id: reporte?.creador_id || currentUserId,
+                trabajo_realizado: trabajoRealizado,
+                material_utilizado: materialUtilizado || '',
+                firma_url: signatureUrl,
+                horas_trabajadas: parsedHoras,
+                fotos_urls: fotos.length > 0 ? fotos : [],
+                facturas_urls: facturas.length > 0 ? facturas : [],
+                fecha_trabajo: fecha || new Date().toISOString().split('T')[0],
+                creado_en: reporte?.creado_en || new Date().toISOString()
+            };
+
+            const saveReport = async (data: any) => {
+                if (reporte?.id) {
+                    return await supabase.from('reportes').update(data).eq('id', reporte.id);
+                } else {
+                    return await supabase.from('reportes').insert(data);
+                }
+            };
+
+            const { error: errorReporte } = await saveReport(reportData);
+
+            if (errorReporte) {
+                console.error("Error saving report:", errorReporte);
+                alert("Error al guardar el reporte técnico: " + errorReporte.message);
                 setSubmitting(false);
                 return;
             }
-        }
+            
+            // Actualizar el estado de la orden (servicio) en Ribera
+            // 3 = Terminado (si se firmó), 2 = En curso (si no se firmó)
+            const newEstadoId = signatureUrl ? 3 : 2; 
+            
+            const { error: errorServicio } = await supabase
+                .from('servicios')
+                .update({ 
+                    estado_id: newEstadoId,
+                })
+                .eq('id', id);
 
-        const parsedHoras = selectedHora + (selectedMinuto / 60);
-
-        const reportData: any = {
-            orden_id: parseInt(id!),
-            creador_id: reporte?.creador_id || currentUserId,
-            trabajo_realizado: trabajoRealizado,
-            material_utilizado: materialUtilizado || '',
-            firma_url: signatureUrl,
-            horas_trabajadas: parsedHoras,
-            fotos_urls: fotos.length > 0 ? fotos : [],
-            facturas_urls: facturas.length > 0 ? facturas : [],
-            fecha_trabajo: fecha || new Date().toISOString().split('T')[0],
-            creado_en: reporte?.creado_en || new Date().toISOString()
-        };
-
-        const saveReport = async (data: any) => {
-            if (reporte?.id) {
-                return await supabase.from('reportes').update(data).eq('id', reporte.id);
-            } else {
-                return await supabase.from('reportes').insert(data);
+            if (errorServicio) {
+                console.error("Error updating orden status:", errorServicio);
+                alert("Aviso: El reporte se ha guardado, pero no se pudo actualizar el estado de la orden: " + errorServicio.message);
             }
-        };
 
-        const { error: errorReporte } = await saveReport(reportData);
-
-        if (errorReporte) {
-            console.error("Error saving report:", errorReporte);
-            alert("Error al guardar el reporte técnico: " + errorReporte.message);
             setSubmitting(false);
-            return;
-        }
-        
-        // Actualizar el estado de la orden (servicio) en Ribera
-        // 3 = Terminado (si se firmó), 2 = En curso (si no se firmó)
-        const newEstadoId = signatureUrl ? 3 : 2; 
-        
-        const { error: errorServicio } = await supabase
-            .from('servicios')
-            .update({ 
-                estado_id: newEstadoId,
-            })
-            .eq('id', id);
+            await fetchOrden(); 
 
-        if (errorServicio) {
-            console.error("Error updating orden status:", errorServicio);
-            alert("Aviso: El reporte se ha guardado, pero no se pudo actualizar el estado de la orden: " + errorServicio.message);
-        }
-
-        setSubmitting(false);
-        await fetchOrden(); 
-
-        if (window.confirm("¡Reporte técnico guardado correctamente!\n\n¿Deseas volver al listado de órdenes? (Aceptar para volver, Cancelar para quedarte en esta pantalla)")) {
-            setShowForm(false); 
-            localStorage.setItem('last_active_order', id || '');
-            navigate('/m/ordenes');
-        } else {
-            setShowForm(false);
+            if (window.confirm("¡Reporte técnico guardado correctamente!\n\n¿Deseas volver al listado de órdenes? (Aceptar para volver, Cancelar para quedarte en esta pantalla)")) {
+                setShowForm(false); 
+                localStorage.setItem('last_active_order', id || '');
+                navigate('/m/ordenes');
+            } else {
+                setShowForm(false);
+            }
+        } catch (globalError) {
+            console.error("Error global en handleComplete:", globalError);
+            alert("Error crítico al procesar el guardado: " + (globalError instanceof Error ? globalError.message : String(globalError)));
+            setSubmitting(false);
         }
     };
 
