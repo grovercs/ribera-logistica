@@ -107,6 +107,13 @@ export default function Sidebar({ isOpen = false, onClose, onLogout }: SidebarPr
     window.location.reload();
   };
 
+  // Cierra el sidebar móvil al navegar por una opción de menú
+  const handleLinkClick = () => {
+    if (isOpen && onClose) {
+      onClose();
+    }
+  };
+
   return (
     <>
       {/* Máscara de fondo oscura al estar abierto en móvil */}
@@ -146,6 +153,7 @@ export default function Sidebar({ isOpen = false, onClose, onLogout }: SidebarPr
         {(userRole === 'Administrador' || userRole === 'Coordinador') && (
           <Link
             href="/"
+            onClick={handleLinkClick}
             className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all group ${
               pathname === '/'
                 ? 'bg-primary text-white shadow-lg shadow-primary/15'
@@ -172,6 +180,7 @@ export default function Sidebar({ isOpen = false, onClose, onLogout }: SidebarPr
             <Link
               key={item.name}
               href={item.path}
+              onClick={handleLinkClick}
               className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all group ${
                 isActive
                   ? 'bg-primary text-white shadow-lg shadow-primary/15'

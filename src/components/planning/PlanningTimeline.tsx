@@ -85,6 +85,9 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
   const [dragStart, setDragStart] = useState<{ date: string; hour: string } | null>(null);
   const [dragEnd, setDragEnd] = useState<{ date: string; hour: string } | null>(null);
 
+  // Detectar si el dispositivo principal es táctil para adaptar la interacción
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Generar quincena activa (14 días a partir del startDate)
@@ -107,6 +110,19 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
   useEffect(() => {
     setServicios(initialServicios);
   }, [initialServicios]);
+
+  // Detectar dispositivo táctil (una sola vez al montar)
+  useEffect(() => {
+    const detect = () => {
+      setIsTouchDevice(
+        window.matchMedia('(pointer: coarse)').matches ||
+        'ontouchstart' in window
+      );
+    };
+    detect();
+    window.addEventListener('resize', detect);
+    return () => window.removeEventListener('resize', detect);
+  }, []);
 
   // Estado para la franja horaria actual (franja amarilla y línea roja móvil)
   const [currentBlock, setCurrentBlock] = useState<{ left: string; width: string } | null>(null);
@@ -262,23 +278,36 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
     };
   };
 
-  // --- LOGICA DE DRAG TO CREATE (ARRASTRAR Y SELECCIONAR) ---
+  // --- LOGICA DE SELECCIÓN DE FRANJA (DRAG EN RATÓN / TAP EN TÁCTIL) ---
+
+  // Selecciona una franja fija de 30 minutos a partir de una celda (modo táctil)
+  const selectCellRange = (dateStr: string, hourStr: string) => {
+    const idx = HOURS_RANGE.indexOf(hourStr);
+    const nextIdx = idx + 1 < HOURS_RANGE.length ? idx + 1 : idx;
+    setSelectedRange({
+      date: dateStr,
+      horaIni: HOURS_RANGE[idx],
+      horaFin: HOURS_RANGE[nextIdx]
+    });
+  };
 
   const handleCellMouseDown = (dateStr: string, hourStr: string) => {
+    // En táctil no iniciamos drag para no interferir con el scroll horizontal
+    if (isTouchDevice) return;
     setIsDragging(true);
     setDragStart({ date: dateStr, hour: hourStr });
     setDragEnd({ date: dateStr, hour: hourStr });
   };
 
   const handleCellMouseEnter = (dateStr: string, hourStr: string) => {
-    if (!isDragging || !dragStart) return;
+    if (!isDragging || !dragStart || isTouchDevice) return;
     if (dateStr === dragStart.date) {
       setDragEnd({ date: dateStr, hour: hourStr });
     }
   };
 
   const handleCellMouseUp = () => {
-    if (!isDragging || !dragStart || !dragEnd) return;
+    if (!isDragging || !dragStart || !dragEnd || isTouchDevice) return;
     setIsDragging(false);
 
     // Calcular hora de inicio y fin ordenadas
@@ -301,6 +330,12 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
 
     setDragStart(null);
     setDragEnd(null);
+  };
+
+  // En táctil un simple tap en una celda selecciona esa media hora
+  const handleCellClick = (dateStr: string, hourStr: string) => {
+    if (!isTouchDevice) return;
+    selectCellRange(dateStr, hourStr);
   };
 
   // Comprobar si una celda está en el rango de arrastre activo
@@ -509,13 +544,14 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                         onMouseDown={() => handleCellMouseDown(dateStr, hour)}
                         onMouseEnter={() => handleCellMouseEnter(dateStr, hour)}
                         onMouseUp={handleCellMouseUp}
-                        className={`flex-1 last:border-0 transition-all ${
-                          hour.endsWith(':00') 
-                            ? 'border-r border-dashed border-slate-200/40 bg-white' 
-                            : 'border-r border-slate-300 bg-white' 
+                        onClick={() => handleCellClick(dateStr, hour)}
+                        className={`flex-1 last:border-0 transition-all touch-pan-x ${
+                          hour.endsWith(':00')
+                            ? 'border-r border-dashed border-slate-200/40 bg-white'
+                            : 'border-r border-slate-300 bg-white'
                         } ${
-                          isSel 
-                            ? '!bg-primary/15 !border-primary/30' 
+                          isSel
+                            ? '!bg-primary/15 !border-primary/30'
                             : 'hover:bg-primary/90/5'
                         }`}
                       />
@@ -587,7 +623,14 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                         onMouseEnter={(e) => handleEventMouseEnter(e, s)}
                         onMouseMove={handleEventMouseMove}
                         onMouseLeave={handleEventMouseLeave}
-                        className="absolute h-8 top-2 text-white rounded-lg flex items-center px-2.5 text-xs font-bold shadow-md cursor-pointer transition-all hover:brightness-105 active:scale-[0.98] select-none z-10 border"
+                        onTouchStart={(e) => {
+                          // En táctil abrimos el modal directamente al tocar un bloque
+                          if (isTouchDevice) {
+                            e.preventDefault();
+                            handleEventClick(s);
+                          }
+                        }}
+                        className="absolute h-8 top-2 text-white rounded-lg flex items-center px-2.5 text-xs font-bold shadow-md cursor-pointer transition-all hover:brightness-105 active:scale-[0.98] select-none z-10 border touch-manipulation"
                         style={{
                           left: pos.left,
                           width: pos.width,
