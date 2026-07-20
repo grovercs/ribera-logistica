@@ -24,21 +24,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-radial from-slate-900 to-black overflow-hidden font-sans">
+    <div className="relative min-h-screen flex items-center justify-center bg-radial from-primary-dark to-black overflow-hidden font-sans">
       {/* Círculos decorativos de fondo con gradientes */}
-      <div className="absolute top-10 left-10 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl" />
+      <div className="absolute top-10 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
 
       {/* Contenedor principal con efecto glassmorphism */}
       <div className="w-full max-w-md p-8 bg-slate-950/80 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-md z-10 mx-4 transition-all duration-300 hover:border-slate-700">
-        
+
         {/* Cabecera del Login */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-600/10 border border-blue-500/20 text-blue-500 rounded-xl mb-4 shadow-lg shadow-blue-500/5">
-            <span className="text-2xl font-black tracking-wider">R</span>
-          </div>
+          <img
+            src="/logo-ribera.png"
+            alt="BigMat Ribera"
+            className="h-16 w-auto object-contain mx-auto mb-4 bg-white rounded-xl px-4 py-2"
+          />
           <h1 className="text-2xl font-bold text-white tracking-tight">Gestión Logística</h1>
-          <p className="text-slate-400 text-sm mt-1">Ribera - Acceso al Sistema</p>
+          <p className="text-slate-400 text-sm mt-1">BigMat Ribera - Acceso al Sistema</p>
         </div>
 
         {/* Formulario */}
@@ -58,7 +60,7 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 required
-                className="w-full bg-slate-900/50 border border-slate-800 rounded-xl py-3 pl-11 pr-4 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                className="w-full bg-slate-900/50 border border-slate-800 rounded-xl py-3 pl-11 pr-4 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 placeholder="ejemplo@ribera.com"
               />
             </div>
@@ -80,7 +82,7 @@ export default function LoginPage() {
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 required
-                className="w-full bg-slate-900/50 border border-slate-800 rounded-xl py-3 pl-11 pr-12 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                className="w-full bg-slate-900/50 border border-slate-800 rounded-xl py-3 pl-11 pr-12 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 placeholder="••••••••"
               />
               <button
@@ -104,7 +106,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl py-3 text-sm font-bold shadow-lg shadow-blue-600/20 hover:shadow-blue-500/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-primary hover:bg-primary/90 active:bg-primary-dark text-white rounded-xl py-3 text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <>

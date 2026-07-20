@@ -126,7 +126,7 @@ export default function Sidebar({ isOpen = false, onClose, onLogout }: SidebarPr
         
         {/* Cabecera / Logo */}
         <div className="p-5 border-b border-slate-800 flex flex-col items-center justify-center bg-slate-950/20 relative">
-          <img src="/logo-ribera.png" alt="Logística Ribera" className="max-h-12 w-auto object-contain" />
+          <img src="/logo-ribera.png" alt="Logística Ribera" className="max-h-16 w-auto object-contain bg-white rounded-lg px-3 py-1.5" />
           <span className="text-[9px] text-slate-500 font-bold tracking-widest uppercase mt-2.5">Panel de Logística</span>
           
           {/* Botón para cerrar en móvil */}
@@ -148,7 +148,7 @@ export default function Sidebar({ isOpen = false, onClose, onLogout }: SidebarPr
             href="/"
             className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all group ${
               pathname === '/'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/15'
+                ? 'bg-primary text-white shadow-lg shadow-primary/15'
                 : 'hover:bg-slate-800/60 hover:text-slate-100'
             }`}
           >
@@ -174,7 +174,7 @@ export default function Sidebar({ isOpen = false, onClose, onLogout }: SidebarPr
               href={item.path}
               className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all group ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/15'
+                  ? 'bg-primary text-white shadow-lg shadow-primary/15'
                   : 'hover:bg-slate-800/60 hover:text-slate-100'
               }`}
             >
@@ -182,7 +182,7 @@ export default function Sidebar({ isOpen = false, onClose, onLogout }: SidebarPr
                 <Icon size={18} className={isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'} />
                 <div>
                   <p className="leading-tight">{item.name}</p>
-                  <span className={`text-[10px] block font-normal mt-0.5 ${isActive ? 'text-blue-100' : 'text-slate-500'}`}>
+                  <span className={`text-[10px] block font-normal mt-0.5 ${isActive ? 'text-white/80' : 'text-slate-500'}`}>
                     {item.description}
                   </span>
                 </div>
@@ -196,10 +196,15 @@ export default function Sidebar({ isOpen = false, onClose, onLogout }: SidebarPr
       {/* Footer / Cerrar Sesión */}
       <div className="p-4 border-t border-slate-800 space-y-3 bg-slate-950/10">
         {/* Logo Vielha Computer (Delphi clásico) */}
-        <div className="px-4 py-1.5 flex items-center justify-between border border-slate-800/40 rounded-xl bg-slate-950/30">
-          <img src="/logo-vielha-computer.png" alt="Vielha Computer" className="h-6 w-auto object-contain opacity-70" />
+        <a
+          href="https://vielhacomputer.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2 flex items-center justify-between border border-slate-800/40 rounded-xl bg-slate-950/30 hover:border-slate-700 transition-colors group"
+        >
+          <img src="/logo-vielha-computer.png" alt="Vielha Computer" className="h-9 w-auto object-contain opacity-70 group-hover:opacity-100 transition-opacity" />
           <span className="text-[8px] font-black text-slate-500 tracking-wider">CONECTADO</span>
-        </div>
+        </a>
 
         <button
           onClick={handleSignOut}
