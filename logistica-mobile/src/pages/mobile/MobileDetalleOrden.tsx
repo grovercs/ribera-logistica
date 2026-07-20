@@ -25,6 +25,8 @@ const MobileDetalleOrden = () => {
     const [selectedMinuto, setSelectedMinuto] = useState(0);
     
     const [submitting, setSubmitting] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
+    const [customError, setCustomError] = useState<string | null>(null);
     
     // Fotos del trabajo
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -360,7 +362,7 @@ const MobileDetalleOrden = () => {
     const handleComplete = async () => {
         try {
             if (!trabajoRealizado || !trabajoRealizado.trim()) {
-                alert("Por favor, introduce la descripción del trabajo realizado.");
+                setCustomError("Por favor, introduce la descripción del trabajo realizado.");
                 return;
             }
 
@@ -387,7 +389,7 @@ const MobileDetalleOrden = () => {
                     signatureUrl = publicUrl;
                 } catch (err) {
                     console.error('Error uploading signature:', err);
-                    alert("Error al subir la firma de conformidad: " + (err instanceof Error ? err.message : String(err)));
+                    setCustomError("Error al subir la firma de conformidad: " + (err instanceof Error ? err.message : String(err)));
                     setSubmitting(false);
                     return;
                 }
@@ -420,7 +422,7 @@ const MobileDetalleOrden = () => {
 
             if (errorReporte) {
                 console.error("Error saving report:", errorReporte);
-                alert("Error al guardar el reporte técnico: " + errorReporte.message);
+                setCustomError("Error al guardar el reporte técnico: " + errorReporte.message);
                 setSubmitting(false);
                 return;
             }
@@ -438,22 +440,15 @@ const MobileDetalleOrden = () => {
 
             if (errorServicio) {
                 console.error("Error updating orden status:", errorServicio);
-                alert("Aviso: El reporte se ha guardado, pero no se pudo actualizar el estado de la orden: " + errorServicio.message);
+                // No bloqueamos, pero se podría registrar
             }
 
             setSubmitting(false);
             await fetchOrden(); 
-
-            if (window.confirm("¡Reporte técnico guardado correctamente!\n\n¿Deseas volver al listado de órdenes? (Aceptar para volver, Cancelar para quedarte en esta pantalla)")) {
-                setShowForm(false); 
-                localStorage.setItem('last_active_order', id || '');
-                navigate('/m/ordenes');
-            } else {
-                setShowForm(false);
-            }
+            setSaveSuccess(true);
         } catch (globalError) {
             console.error("Error global en handleComplete:", globalError);
-            alert("Error crítico al procesar el guardado: " + (globalError instanceof Error ? globalError.message : String(globalError)));
+            setCustomError("Error crítico al procesar el guardado: " + (globalError instanceof Error ? globalError.message : String(globalError)));
             setSubmitting(false);
         }
     };
@@ -943,6 +938,80 @@ const MobileDetalleOrden = () => {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL DE ERROR PERSONALIZADO */}
+            {customError && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setCustomError(null)} />
+                    <div className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl overflow-hidden animate-in scale-in duration-200 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-[28px]">error</span>
+                            </div>
+                            <h3 className="text-lg font-black text-slate-800 tracking-tight mt-2">Atención</h3>
+                            <p className="text-sm text-slate-500 font-medium leading-relaxed mt-1">{customError}</p>
+                            
+                            <button
+                                onClick={() => setCustomError(null)}
+                                className="w-full bg-slate-900 text-white font-black py-3.5 rounded-xl hover:bg-slate-800 active:scale-95 transition-all text-sm shadow-md mt-4"
+                            >
+                                Aceptar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL DE ÉXITO PERSONALIZADO */}
+            {saveSuccess && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+                    <div className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl overflow-hidden animate-in scale-in duration-200 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-[28px]">check_circle</span>
+                            </div>
+                            <h3 className="text-lg font-black text-slate-800 tracking-tight mt-2">¡Guardado con éxito!</h3>
+                            <p className="text-sm text-slate-500 font-medium leading-relaxed mt-1">El reporte técnico se ha guardado correctamente.</p>
+                            
+                            <div className="flex flex-col w-full gap-2 mt-6">
+                                <button
+                                    onClick={() => {
+                                        setSaveSuccess(false);
+                                        setShowForm(false);
+                                        localStorage.setItem('last_active_order', id || '');
+                                        navigate('/m/ordenes');
+                                    }}
+                                    className="w-full bg-slate-900 text-white font-black py-3.5 rounded-xl hover:bg-slate-800 active:scale-95 transition-all text-sm shadow-md"
+                                >
+                                    Volver a Órdenes
+                                </button>
+                                
+                                <button
+                                    onClick={() => {
+                                        setSaveSuccess(false);
+                                        resetForm();
+                                        setShowForm(true);
+                                    }}
+                                    className="w-full bg-[#ff7b1c] text-white font-black py-3.5 rounded-xl hover:bg-[#e06915] active:scale-95 transition-all text-sm shadow-md"
+                                >
+                                    Añadir otro parte
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        setSaveSuccess(false);
+                                        setShowForm(false);
+                                    }}
+                                    className="w-full bg-slate-100 text-slate-700 font-bold py-3.5 rounded-xl hover:bg-slate-200 active:scale-95 transition-all text-sm"
+                                >
+                                    Cerrar y Ver Orden
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
