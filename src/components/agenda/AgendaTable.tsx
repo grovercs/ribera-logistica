@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertTriangle, Edit2, Calendar, Phone, User, CheckCircle2, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import ServicioModal from '../servicios/ServicioModal';
+import { getServicioColorClass } from '@/lib/servicioColor';
 
 interface CatalogoItem {
   id: number;
@@ -35,56 +36,9 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
 
   // Helper para determinar el color clásico de Delphi por fila
   const getFilaColorClass = (s: any) => {
-    if (!s.fecha_entrega) return 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50/50';
-
-    const [year, month, day] = s.fecha_entrega.split('-').map(Number);
-    const fechaEntrega = new Date(year, month - 1, day);
-    fechaEntrega.setHours(0, 0, 0, 0);
-
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-
-    const manana = new Date(hoy);
-    manana.setDate(hoy.getDate() + 1);
-
-    // Calcular límites de la semana actual (lunes a domingo)
-    const currentDay = hoy.getDay();
-    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-    const lunesEstaSemana = new Date(hoy);
-    lunesEstaSemana.setDate(hoy.getDate() + diffToMonday);
-    
-    const domingoEstaSemana = new Date(lunesEstaSemana);
-    domingoEstaSemana.setDate(lunesEstaSemana.getDate() + 6);
-
-    const estadoNombre = s.estados?.nombre;
-
-    // Regla 1: Anulado (Gris y tachado)
-    if (estadoNombre === 'Anulado') {
-      return 'bg-slate-100/70 border-slate-200 text-slate-400 line-through hover:bg-slate-100/90';
-    }
-
-    // Regla 2: Terminado o Cerrado/Facturado (Verde)
-    if (estadoNombre === 'Terminado' || estadoNombre === 'Facturado/Cerrado') {
-      return 'bg-emerald-50/70 border-emerald-100 text-emerald-900 hover:bg-emerald-50/90';
-    }
-
-    // Regla 3: Hoy o Atrasado (Rojo)
-    if (fechaEntrega <= hoy) {
-      return 'bg-red-50/80 border-red-100 text-red-950 font-semibold hover:bg-red-50/95';
-    }
-
-    // Regla 4: Mañana (Naranja)
-    if (fechaEntrega.getTime() === manana.getTime()) {
-      return 'bg-amber-50/80 border-amber-100 text-amber-950 font-semibold hover:bg-amber-50/95';
-    }
-
-    // Regla 5: Esta semana (Amarillo)
-    if (fechaEntrega >= lunesEstaSemana && fechaEntrega <= domingoEstaSemana) {
-      return 'bg-yellow-50/70 border-yellow-100 text-yellow-950 hover:bg-yellow-50/90';
-    }
-
-    // Por defecto (Sin colores destacados)
-    return 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50/50';
+    const color = getServicioColorClass(s);
+    const isAnulado = s.estados?.nombre === 'Anulado';
+    return `${color.bg}/80 ${color.border} ${color.text} ${isAnulado ? 'line-through' : ''} hover:${color.bg}`;
   };
 
   const handleRowClick = (id: number) => {
@@ -179,9 +133,9 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
                     
                     {/* Tipo Servicio */}
                     <td className="px-4 py-3">
-                      <span 
+                      <span
                         className="px-2 py-0.5 rounded-md text-[10px] font-bold text-white shadow-sm"
-                        style={{ backgroundColor: s.tipos_servicios?.color || '#94a3b8' }}
+                        style={{ backgroundColor: getServicioColorClass(s).badge }}
                       >
                         {s.tipos_servicios?.nombre || 'General'}
                       </span>
@@ -196,8 +150,13 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         {s.incidencias && (
-                          <span title="Esta orden tiene incidencias activas" className="p-0.5 bg-red-100 text-red-600 rounded">
+                          <span title="Esta orden tiene incidencias activas" className="p-0.5 bg-red-100 text-red-600 rounded-full">
                             <AlertTriangle size={12} className="animate-pulse" />
+                          </span>
+                        )}
+                        {(s.estados?.nombre === 'Terminado' || s.estados?.nombre === 'Facturado/Cerrado') && (
+                          <span title="Servicio finalizado" className="p-0.5 bg-emerald-100 text-emerald-600 rounded-full">
+                            <CheckCircle2 size={12} />
                           </span>
                         )}
                         {s.dest_observaciones && (

@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, User, Calendar, Wrench, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Calendar, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import ServicioModal from '../servicios/ServicioModal';
 import ServicioTooltip from './ServicioTooltip';
 import { createClient } from '@/lib/supabase/client';
+import { getServicioColorClass } from '@/lib/servicioColor';
 
 interface CatalogoItem {
   id: number;
@@ -648,33 +649,8 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                   {/* Renderizado de Bloques de Servicio Posicionados Absolutamente */}
                   {dayEvents.map((s) => {
                     const pos = getEventPosition(s);
-                    // Obtener color base
-                    let baseColor = s.tipos_servicios?.color || '#003366';
-                    
-                    // Normalizar y comprobar si es un color negro, gris oscuro o rojo/marrón muy oscuro agresivo
-                    const cleanColor = baseColor.trim().toLowerCase();
-                    const isDark = 
-                      cleanColor === '#000000' || 
-                      cleanColor === '#000' || 
-                      cleanColor === 'black' ||
-                      cleanColor.startsWith('rgb(0') ||
-                      cleanColor.startsWith('rgba(0') ||
-                      cleanColor === '#111' ||
-                      cleanColor === '#111111' ||
-                      cleanColor === '#222' ||
-                      cleanColor === '#222222' ||
-                      cleanColor === '#333' ||
-                      cleanColor === '#333333' ||
-                      cleanColor === '#1d0000' ||
-                      cleanColor.includes('rgb(29') ||
-                      cleanColor.includes('rgba(29');
-                    
-                    if (isDark) {
-                      baseColor = '#003366'; // Forzar a azul agradable
-                    }
-                    
-                    // Crear gradiente lineal horizontal (degradado de mayor a menor)
-                    const gradient = `linear-gradient(90deg, ${baseColor} 0%, ${baseColor}33 100%)`;
+                    const color = getServicioColorClass(s);
+                    const isAnulado = s.estados?.nombre === 'Anulado';
 
                     return (
                       <div
@@ -690,20 +666,24 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                             handleEventClick(s);
                           }
                         }}
-                        className="absolute h-8 top-2 text-white rounded-lg flex items-center px-2.5 text-xs font-bold shadow-md cursor-pointer transition-all hover:brightness-105 active:scale-[0.98] select-none z-10 border touch-manipulation"
+                        className={`absolute h-8 top-2 rounded-lg flex items-center px-2 text-[11px] font-bold shadow-md cursor-pointer transition-all hover:brightness-105 active:scale-[0.98] select-none z-10 border touch-manipulation ${color.bg} ${color.border} ${color.text} ${isAnulado ? 'line-through' : ''}`}
                         style={{
                           left: pos.left,
-                          width: pos.width,
-                          background: gradient,
-                          borderColor: `${baseColor}cc`,
-                          textShadow: '0 1px 2px rgba(0,0,0,0.15)'
+                          width: pos.width
                         }}
                       >
                         <div className="flex items-center gap-1.5 w-full min-w-0">
                           {s.incidencias && (
-                            <AlertTriangle size={12} className="text-white flex-shrink-0 animate-pulse" />
+                            <span className={`p-0.5 rounded-full ${color.iconBg} ${color.iconText} flex-shrink-0`}>
+                              <AlertTriangle size={10} className="animate-pulse" />
+                            </span>
                           )}
-                          <span className="truncate flex-1 font-semibold tracking-tight text-[11px]">
+                          {(s.estados?.nombre === 'Terminado' || s.estados?.nombre === 'Facturado/Cerrado') && (
+                            <span className={`p-0.5 rounded-full ${color.iconBg} ${color.iconText} flex-shrink-0`}>
+                              <CheckCircle2 size={10} />
+                            </span>
+                          )}
+                          <span className="truncate flex-1 font-semibold tracking-tight">
                             {s.nombre_cliente}
                           </span>
                         </div>
@@ -890,24 +870,8 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                     (activeEmpleadoId === null ? s.empleado_id === null : s.empleado_id === activeEmpleadoId)
                   )
                   .map((s) => {
-                    let baseColor = s.tipos_servicios?.color || '#003366';
-                    const cleanColor = baseColor.trim().toLowerCase();
-                    const isDark =
-                      cleanColor === '#000000' ||
-                      cleanColor === '#000' ||
-                      cleanColor === 'black' ||
-                      cleanColor.startsWith('rgb(0') ||
-                      cleanColor.startsWith('rgba(0') ||
-                      cleanColor === '#111' ||
-                      cleanColor === '#111111' ||
-                      cleanColor === '#222' ||
-                      cleanColor === '#222222' ||
-                      cleanColor === '#333' ||
-                      cleanColor === '#333333' ||
-                      cleanColor === '#1d0000' ||
-                      cleanColor.includes('rgb(29') ||
-                      cleanColor.includes('rgba(29');
-                    if (isDark) baseColor = '#003366';
+                    const color = getServicioColorClass(s);
+                    const isAnulado = s.estados?.nombre === 'Anulado';
                     const pos = getMobileEventStyle(s);
 
                     return (
@@ -915,17 +879,23 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
                         key={s.id}
                         type="button"
                         onClick={() => handleEventClick(s)}
-                        className="absolute left-1 right-1 rounded-lg flex flex-col justify-center px-2 text-left text-white text-[10px] font-bold shadow-md active:scale-[0.98] transition-transform z-10 border touch-manipulation overflow-hidden"
+                        className={`absolute left-1 right-1 rounded-lg flex flex-col justify-center px-2 text-left text-[10px] font-bold shadow-md active:scale-[0.98] transition-transform z-10 border touch-manipulation overflow-hidden ${color.bg} ${color.border} ${color.text} ${isAnulado ? 'line-through' : ''}`}
                         style={{
                           top: pos.top,
-                          height: pos.height,
-                          backgroundColor: baseColor,
-                          borderColor: `${baseColor}cc`,
-                          textShadow: '0 1px 2px rgba(0,0,0,0.15)'
+                          height: pos.height
                         }}
                       >
                         <div className="flex items-center gap-1">
-                          {s.incidencias && <AlertTriangle size={10} className="text-white flex-shrink-0 animate-pulse" />}
+                          {s.incidencias && (
+                            <span className={`p-0.5 rounded-full ${color.iconBg} ${color.iconText} flex-shrink-0`}>
+                              <AlertTriangle size={10} className="animate-pulse" />
+                            </span>
+                          )}
+                          {(s.estados?.nombre === 'Terminado' || s.estados?.nombre === 'Facturado/Cerrado') && (
+                            <span className={`p-0.5 rounded-full ${color.iconBg} ${color.iconText} flex-shrink-0`}>
+                              <CheckCircle2 size={10} />
+                            </span>
+                          )}
                           <span className="truncate">{s.nombre_cliente}</span>
                         </div>
                         <span className="opacity-90 text-[9px] font-medium truncate">
@@ -940,6 +910,43 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
 
         </div>{/* /vista móvil */}
 
+      </div>
+
+      {/* Leyenda de colores */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Leyenda:</span>
+
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-red-500"></span>
+            <span className="text-xs font-semibold text-slate-700">Hoy o atrasado</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-amber-500"></span>
+            <span className="text-xs font-semibold text-slate-700">Mañana</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
+            <span className="text-xs font-semibold text-slate-700">Esta semana</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+            <span className="text-xs font-semibold text-slate-700">Terminado</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-primary"></span>
+            <span className="text-xs font-semibold text-slate-700">Facturado/Cerrado</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-slate-400"></span>
+            <span className="text-xs font-semibold text-slate-700 line-through">Anulado</span>
+          </div>
+        </div>
       </div>
 
       {/* Tooltip Flotante */}
