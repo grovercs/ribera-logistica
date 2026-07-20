@@ -38,7 +38,7 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
   const getFilaColorClass = (s: any) => {
     const color = getServicioColorClass(s);
     const isAnulado = s.estados?.nombre === 'Anulado';
-    return `${color.bg}/80 ${color.border} ${color.text} ${isAnulado ? 'line-through' : ''} hover:${color.bg}`;
+    return `${color.bg} ${color.border} ${color.text} ${isAnulado ? 'line-through' : ''} hover:brightness-110 transition-colors`;
   };
 
   const handleRowClick = (id: number) => {
@@ -135,7 +135,7 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
                     <td className="px-4 py-3">
                       <span
                         className="px-2 py-0.5 rounded-md text-[10px] font-bold text-white shadow-sm"
-                        style={{ backgroundColor: getServicioColorClass(s).badge }}
+                        style={{ backgroundColor: s.tipos_servicios?.color || '#64748b' }}
                       >
                         {s.tipos_servicios?.nombre || 'General'}
                       </span>

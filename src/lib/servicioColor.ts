@@ -10,12 +10,13 @@ export interface ServicioColor {
 
 /**
  * Devuelve el color visual de una orden de servicio según su estado y fecha de entrega.
- * Criterio clásico de la agenda Delphi:
+ * Criterio clásico de la agenda Delphi con colores sólidos e intensos:
  *   - Anulado: gris plata, tachado
- *   - Terminado / Facturado-Cerrado: verde
+ *   - Terminado: verde
+ *   - Facturado/Cerrado: azul corporativo
  *   - Hoy o atrasado: rojo
  *   - Mañana: naranja/ámbar
- *   - Esta semana: amarillo claro
+ *   - Esta semana: amarillo
  *   - Resto: blanco
  */
 export function getServicioColorClass(s: any, hoy: Date = new Date()): ServicioColor {
@@ -27,26 +28,39 @@ export function getServicioColorClass(s: any, hoy: Date = new Date()): ServicioC
   // Anulado
   if (estadoNombre === 'Anulado') {
     return {
-      bg: 'bg-slate-200',
-      border: 'border-slate-300',
-      text: 'text-slate-700',
+      bg: 'bg-slate-300',
+      border: 'border-slate-400',
+      text: 'text-slate-800',
       badge: '#94a3b8',
-      iconBg: 'bg-slate-400',
+      iconBg: 'bg-slate-500',
       iconText: 'text-white',
       label: 'Anulado'
     };
   }
 
-  // Terminado o Facturado/Cerrado
-  if (estadoNombre === 'Terminado' || estadoNombre === 'Facturado/Cerrado') {
+  // Terminado
+  if (estadoNombre === 'Terminado') {
     return {
-      bg: 'bg-emerald-50',
-      border: 'border-emerald-200',
-      text: 'text-emerald-900',
+      bg: 'bg-emerald-500',
+      border: 'border-emerald-600',
+      text: 'text-white',
       badge: '#10b981',
-      iconBg: 'bg-emerald-500',
+      iconBg: 'bg-emerald-100',
+      iconText: 'text-emerald-700',
+      label: 'Terminado'
+    };
+  }
+
+  // Facturado/Cerrado
+  if (estadoNombre === 'Facturado/Cerrado') {
+    return {
+      bg: 'bg-primary',
+      border: 'border-primary-dark',
+      text: 'text-white',
+      badge: '#003366',
+      iconBg: 'bg-primary/20',
       iconText: 'text-white',
-      label: estadoNombre === 'Terminado' ? 'Terminado' : 'Facturado/Cerrado'
+      label: 'Facturado/Cerrado'
     };
   }
 
@@ -80,12 +94,12 @@ export function getServicioColorClass(s: any, hoy: Date = new Date()): ServicioC
   // Hoy o atrasado
   if (fechaEntrega <= hoyNormalizado) {
     return {
-      bg: 'bg-red-50',
-      border: 'border-red-200',
-      text: 'text-red-950',
+      bg: 'bg-red-500',
+      border: 'border-red-600',
+      text: 'text-white',
       badge: '#ef4444',
-      iconBg: 'bg-red-500',
-      iconText: 'text-white',
+      iconBg: 'bg-red-100',
+      iconText: 'text-red-700',
       label: 'Hoy o atrasado'
     };
   }
@@ -93,12 +107,12 @@ export function getServicioColorClass(s: any, hoy: Date = new Date()): ServicioC
   // Mañana
   if (fechaEntrega.getTime() === manana.getTime()) {
     return {
-      bg: 'bg-amber-50',
-      border: 'border-amber-200',
-      text: 'text-amber-950',
+      bg: 'bg-amber-500',
+      border: 'border-amber-600',
+      text: 'text-white',
       badge: '#f59e0b',
-      iconBg: 'bg-amber-500',
-      iconText: 'text-white',
+      iconBg: 'bg-amber-100',
+      iconText: 'text-amber-700',
       label: 'Mañana'
     };
   }
@@ -106,12 +120,12 @@ export function getServicioColorClass(s: any, hoy: Date = new Date()): ServicioC
   // Esta semana
   if (fechaEntrega >= lunesEstaSemana && fechaEntrega <= domingoEstaSemana) {
     return {
-      bg: 'bg-yellow-50',
-      border: 'border-yellow-200',
-      text: 'text-yellow-950',
+      bg: 'bg-yellow-400',
+      border: 'border-yellow-500',
+      text: 'text-slate-900',
       badge: '#eab308',
-      iconBg: 'bg-yellow-500',
-      iconText: 'text-white',
+      iconBg: 'bg-yellow-100',
+      iconText: 'text-yellow-800',
       label: 'Esta semana'
     };
   }
