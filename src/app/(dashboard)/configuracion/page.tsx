@@ -5,15 +5,17 @@ import ConfiguracionContainer from '@/components/configuracion/ConfiguracionCont
 export default async function ConfiguracionPage() {
   const supabase = await createClient();
 
-  // Cargar técnicos, tiendas y configuración de correo en paralelo desde Supabase
+  // Cargar técnicos, tiendas, configuración de correo y perfiles de usuario en paralelo desde Supabase
   const [
     { data: empleados },
     { data: tiendas },
-    { data: configCorreo }
+    { data: configCorreo },
+    { data: perfiles }
   ] = await Promise.all([
     supabase.from('empleados').select('*').order('nombre'),
     supabase.from('tiendas').select('*').order('id'),
-    supabase.from('configuracion_correo').select('*').order('id', { ascending: false }).limit(1).maybeSingle()
+    supabase.from('configuracion_correo').select('*').order('id', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('perfiles').select('*, empleados(id, nombre)').order('email')
   ]);
 
   return (
@@ -30,6 +32,7 @@ export default async function ConfiguracionPage() {
         initialEmpleados={empleados || []}
         initialTiendas={tiendas || []}
         initialConfigCorreo={configCorreo || null}
+        initialPerfiles={perfiles || []}
       />
 
     </div>

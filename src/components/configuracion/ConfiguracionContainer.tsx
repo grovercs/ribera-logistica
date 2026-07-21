@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Edit2, CheckCircle2, XCircle, Phone, UserPlus, Settings, Store, Euro, Landmark, Building2, KeyRound, Mail, ShieldCheck, Send, Save } from 'lucide-react';
-import { guardarEmpleado, toggleEmpleadoActivo, crearAccesoUsuario, obtenerConfiguracionCorreo, guardarConfiguracionCorreo, probarConfiguracionCorreo, ConfiguracionCorreoInput } from '@/app/(dashboard)/configuracion/actions';
+import { Plus, Edit2, CheckCircle2, XCircle, Phone, UserPlus, Settings, Store, Euro, Landmark, Building2, KeyRound, Mail, ShieldCheck, Send, Save, Users, Shield, UserCog } from 'lucide-react';
+import { guardarEmpleado, toggleEmpleadoActivo, crearAccesoUsuario, obtenerConfiguracionCorreo, guardarConfiguracionCorreo, probarConfiguracionCorreo, ConfiguracionCorreoInput, obtenerPerfilesUsuarios, actualizarRolUsuario, toggleActivoUsuario } from '@/app/(dashboard)/configuracion/actions';
 import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface Empleado {
@@ -37,14 +37,26 @@ interface ConfiguracionCorreo {
   smtp_pass: string;
 }
 
+interface PerfilUsuario {
+  id: string;
+  email: string;
+  nombre: string | null;
+  telefono: string | null;
+  rol: string;
+  activo: boolean;
+  creado_en: string;
+  empleados?: { id: number; nombre: string }[] | null;
+}
+
 interface ConfiguracionContainerProps {
   initialEmpleados: Empleado[];
   initialTiendas: Tienda[];
   initialConfigCorreo: ConfiguracionCorreo | null;
+  initialPerfiles: PerfilUsuario[];
 }
 
-export default function ConfiguracionContainer({ initialEmpleados, initialTiendas, initialConfigCorreo }: ConfiguracionContainerProps) {
-  const [activeTab, setActiveTab] = useState<'tecnicos' | 'tiendas' | 'correo'>('tecnicos');
+export default function ConfiguracionContainer({ initialEmpleados, initialTiendas, initialConfigCorreo, initialPerfiles }: ConfiguracionContainerProps) {
+  const [activeTab, setActiveTab] = useState<'tecnicos' | 'tiendas' | 'correo' | 'usuarios'>('tecnicos');
   const [empleados, setEmpleados] = useState<Empleado[]>(initialEmpleados);
   const [tiendas, setTiendas] = useState<Tienda[]>(initialTiendas);
 
@@ -90,6 +102,13 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
   const [savingCorreo, setSavingCorreo] = useState(false);
   const [testingCorreo, setTestingCorreo] = useState(false);
   const [emailPrueba, setEmailPrueba] = useState('');
+
+  // Gestión de usuarios y roles
+  const [perfiles, setPerfiles] = useState<PerfilUsuario[]>(initialPerfiles);
+  const [updatingRol, setUpdatingRol] = useState<string | null>(null);
+  const [togglingUsuario, setTogglingUsuario] = useState<string | null>(null);
+
+  const rolesDisponibles = ['Administrador', 'Coordinador', 'Operario', 'Consultivo', 'Instalador'];
 
   // Refrescar lista de operarios
   const refreshList = async () => {
@@ -237,6 +256,40 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
     }
   };
 
+  const refreshPerfiles = async () => {
+    const res = await obtenerPerfilesUsuarios();
+    if (res.success && res.perfiles) {
+      setPerfiles(res.perfiles as PerfilUsuario[]);
+    }
+  };
+
+  const handleCambiarRol = async (perfilId: string, nuevoRol: string) => {
+    if (!confirm(`¿Seguro que quieres cambiar el rol a "${nuevoRol}"?`)) return;
+    setUpdatingRol(perfilId);
+    const res = await actualizarRolUsuario(perfilId, nuevoRol);
+    setUpdatingRol(null);
+
+    if (res.success) {
+      await refreshPerfiles();
+    } else {
+      alert(`Error al cambiar rol: ${res.error}`);
+    }
+  };
+
+  const handleToggleUsuario = async (perfil: PerfilUsuario) => {
+    const accion = perfil.activo ? 'desactivar' : 'activar';
+    if (!confirm(`¿Seguro que quieres ${accion} la cuenta de ${perfil.email}?`)) return;
+    setTogglingUsuario(perfil.id);
+    const res = await toggleActivoUsuario(perfil.id, perfil.activo);
+    setTogglingUsuario(null);
+
+    if (res.success) {
+      await refreshPerfiles();
+    } else {
+      alert(`Error al cambiar estado: ${res.error}`);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       
@@ -279,6 +332,17 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
           >
             <Mail size={15} />
             <span>Envío de Correo</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('usuarios')}
+            className={`w-full text-left px-5 py-3 text-xs font-bold flex items-center gap-2.5 transition-colors cursor-pointer ${
+              activeTab === 'usuarios'
+                ? 'bg-primary/5 text-primary border-l-4 border-primary'
+                : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Users size={15} />
+            <span>Usuarios y Roles</span>
           </button>
         </div>
       </div>
@@ -471,6 +535,10 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
               </div>
             </div>
 
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-[10px] font-semibold text-amber-700">
+              <span className="font-bold">Nota:</span> El puerto 587 utiliza STARTTLS; deja desmarcada la casilla “Conexión segura”. El puerto 465 requiere SSL/TLS.
+            </div>
+
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1 sm:col-span-2">
@@ -610,6 +678,105 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
             </div>
 
           </form>
+        )}
+
+        {/* PESTAÑA USUARIOS Y ROLES */}
+        {activeTab === 'usuarios' && (
+          <div className="space-y-4">
+
+            <div className="bg-white p-4 border border-slate-200 rounded-2xl shadow-sm flex items-start justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Usuarios y Roles de Acceso</h3>
+                <p className="text-[10px] text-slate-400 font-semibold">Gestiona quién puede acceder al sistema y qué permisos tiene.</p>
+              </div>
+              <div className="p-2 bg-primary/5 text-primary rounded-lg">
+                <Shield size={18} />
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-[10px] font-semibold text-amber-700">
+              <span className="font-bold">Nota:</span> Para crear una cuenta nueva, ve a la pestaña “Técnicos (Operarios)”, añade el email del técnico y pulsa “Crear Acceso”. Desde aquí solo puedes cambiar roles y activar/desactivar cuentas.
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs select-none">
+                  <thead className="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="px-5 py-3.5">Usuario</th>
+                      <th className="px-5 py-3.5 w-40">Rol</th>
+                      <th className="px-5 py-3.5 w-40">Técnico vinculado</th>
+                      <th className="px-5 py-3.5 w-28 text-center">Estado</th>
+                      <th className="px-5 py-3.5 w-28 text-center">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-600 font-semibold">
+                    {perfiles.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-5 py-12 text-center text-slate-400 italic">
+                          -- No hay usuarios registrados --
+                        </td>
+                      </tr>
+                    ) : (
+                      perfiles.map((perfil) => (
+                        <tr key={perfil.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-5 py-3.5">
+                            <p className="text-slate-900 font-bold text-sm">{perfil.email}</p>
+                            {perfil.nombre && <p className="text-[10px] text-slate-400 font-medium">{perfil.nombre}</p>}
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <select
+                              value={perfil.rol}
+                              onChange={(e) => handleCambiarRol(perfil.id, e.target.value)}
+                              disabled={updatingRol === perfil.id}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2 text-[10px] font-bold text-slate-700 focus:outline-none focus:border-primary transition-all disabled:opacity-50"
+                            >
+                              {rolesDisponibles.map((rol) => (
+                                <option key={rol} value={rol}>{rol}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            {perfil.empleados && perfil.empleados.length > 0 ? (
+                              <span className="text-[10px] font-bold text-primary bg-primary/5 border border-primary/20 px-2 py-1 rounded-full">
+                                {perfil.empleados[0].nombre}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">Sin vínculo</span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3.5 text-center">
+                            <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold uppercase inline-flex items-center gap-1 border ${
+                              perfil.activo
+                                ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                : 'bg-red-50 text-red-500 border-red-100'
+                            }`}>
+                              {perfil.activo ? <><CheckCircle2 size={10} /> <span>Activo</span></> : <><XCircle size={10} /> <span>Inactivo</span></>}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleUsuario(perfil)}
+                              disabled={togglingUsuario === perfil.id}
+                              className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-all cursor-pointer disabled:opacity-50 ${
+                                perfil.activo
+                                  ? 'bg-white hover:bg-red-50 text-red-600 border-red-200'
+                                  : 'bg-white hover:bg-emerald-50 text-emerald-600 border-emerald-200'
+                              }`}
+                            >
+                              {togglingUsuario === perfil.id ? 'Procesando...' : (perfil.activo ? 'Desactivar' : 'Activar')}
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
         )}
 
       </div>

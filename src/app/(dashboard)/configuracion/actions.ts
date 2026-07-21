@@ -173,6 +173,76 @@ export async function crearAccesoUsuario(empleadoId: number, email: string, cont
   }
 }
 
+/**
+ * Lista los perfiles de usuario registrados en el sistema.
+ */
+export async function obtenerPerfilesUsuarios() {
+  const supabase = await createClient();
+
+  try {
+    const { data: perfiles, error } = await supabase
+      .from('perfiles')
+      .select('*, empleados(id, nombre)')
+      .order('email');
+
+    if (error) throw error;
+
+    return { success: true, perfiles: perfiles || [] };
+  } catch (error: any) {
+    console.error("Error al obtener perfiles de usuarios:", error);
+    return { success: false, error: error.message || 'Error al cargar los usuarios.' };
+  }
+}
+
+/**
+ * Actualiza el rol de un perfil de usuario.
+ */
+export async function actualizarRolUsuario(perfilId: string, nuevoRol: string) {
+  const supabase = await createClient();
+
+  const rolesPermitidos = ['Administrador', 'Coordinador', 'Operario', 'Consultivo', 'Instalador'];
+  if (!rolesPermitidos.includes(nuevoRol)) {
+    return { success: false, error: 'Rol no válido.' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('perfiles')
+      .update({ rol: nuevoRol as any })
+      .eq('id', perfilId);
+
+    if (error) throw error;
+
+    revalidatePath('/configuracion');
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error al actualizar rol de usuario:", error);
+    return { success: false, error: error.message || 'Error al actualizar el rol.' };
+  }
+}
+
+/**
+ * Activa o desactiva un perfil de usuario.
+ */
+export async function toggleActivoUsuario(perfilId: string, activoActual: boolean) {
+  const supabase = await createClient();
+
+  try {
+    const { error } = await supabase
+      .from('perfiles')
+      .update({ activo: !activoActual })
+      .eq('id', perfilId);
+
+    if (error) throw error;
+
+    revalidatePath('/configuracion');
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error al cambiar estado de usuario:", error);
+    return { success: false, error: error.message || 'Error al cambiar el estado.' };
+  }
+}
+
 export interface ConfiguracionCorreoInput {
   remitente_email: string;
   remitente_nombre: string;
