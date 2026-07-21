@@ -353,8 +353,28 @@ export default async function PrintPage({ params }: PrintPageProps) {
       </div>
 
       {/* Pie del Reporte */}
-      <div className="text-center text-[9px] text-slate-400 mt-12 border-t border-slate-200 pt-3">
-        Documento generado digitalmente por Ribera Logística S.L. en fecha {new Date().toLocaleDateString('es-ES')}.
+      <div className="mt-8 border-t-2 border-slate-900 pt-4 print-border">
+        <div className="flex items-start justify-between">
+
+          {/* Logo / Marca */}
+          <div className="flex flex-col">
+            <span className="text-base font-black tracking-tight text-slate-900">
+              BigMat<span className="text-primary"> Ribera</span>
+            </span>
+            <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Logística y Servicios de Entrega</span>
+          </div>
+
+          {/* Datos de contacto */}
+          <div className="text-right text-[8px] leading-relaxed text-slate-600 font-semibold">
+            <p>Ctra Francia 42 · 25530 Vielha (Lleida)</p>
+            <p>T. 973 64 14 60 · WhatsApp 618 88 63 88 · Exposición 660 50 33 53</p>
+            <p>pedidos@riberahogar.com · www.riberahogar.com</p>
+            <p className="text-[7px] text-slate-400 mt-1">Vielha: Lu-Vi 8:00-13:00 / 15:00-19:00 · Sá 9:00-13:30</p>
+          </div>
+        </div>
+        <div className="text-center text-[7px] text-slate-400 mt-3 pt-2 border-t border-slate-200">
+          Documento generado digitalmente por BigMat Ribera en fecha {new Date().toLocaleDateString('es-ES')}.
+        </div>
       </div>
 
     </div>

@@ -404,8 +404,9 @@ async function generarHtmlOrdenServicio(servicioId: number) {
         </div>
         <div class="footer">
           <div class="company">BigMat<span> Ribera</span></div>
-          <p style="margin: 4px 0;">Ctra. de Vielha a Betren, Km. 0,2 · 25530 Vielha e Mijaran (Lleida)</p>
-          <p style="margin: 4px 0;">Tel. 973 64 00 00 · ribera@bigmat.es · www.bigmatribera.com</p>
+          <p style="margin: 4px 0;">Ctra Francia 42 · 25530 Vielha (Lleida)</p>
+          <p style="margin: 4px 0;">T. 973 64 14 60 · WhatsApp 618 88 63 88 · Exposición 660 50 33 53</p>
+          <p style="margin: 4px 0;">pedidos@riberahogar.com · www.riberahogar.com</p>
           <p style="margin-top: 12px; font-size: 10px; color: #94a3b8;">
             © ${new Date().getFullYear()} BigMat Ribera. Todos los derechos reservados.
           </p>
