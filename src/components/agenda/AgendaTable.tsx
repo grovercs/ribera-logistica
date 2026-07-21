@@ -133,12 +133,7 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
                     
                     {/* Tipo Servicio */}
                     <td className="px-4 py-3">
-                      <span
-                        className="px-2 py-0.5 rounded-md text-[10px] font-bold text-white shadow-sm"
-                        style={{ backgroundColor: s.tipos_servicios?.color || '#64748b' }}
-                      >
-                        {s.tipos_servicios?.nombre || 'General'}
-                      </span>
+                      {s.tipos_servicios?.nombre || 'General'}
                     </td>
                     
                     {/* Total */}
