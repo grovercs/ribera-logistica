@@ -18,6 +18,7 @@ const MobileDetalleOrden = () => {
     const [trabajadoresMap, setTrabajadoresMap] = useState<Map<string, { nombre: string; especialidad: string }>>(new Map());
     const [materialesOrden, setMaterialesOrden] = useState<any[]>([]);
     const [tipoServicioNombre, setTipoServicioNombre] = useState<string>('');
+    const [estadoIds, setEstadoIds] = useState<Map<string, number>>(new Map());
 
     // Formulario de reporte
     const [fecha, setFecha] = useState('');
@@ -71,11 +72,29 @@ const MobileDetalleOrden = () => {
     }, [id]);
 
     const fetchOrden = async () => {
+        setLoading(true);
+        setCustomError(null);
+
         const { data: userData } = await supabase.auth.getUser();
         const userId = userData?.user?.id || null;
         setCurrentUserId(userId);
 
-        if (!userId) return;
+        if (!userId) {
+            setLoading(false);
+            return;
+        }
+
+        // Resolver IDs de estados por nombre para no depender de IDs hardcodeados
+        const { data: estadosData, error: estadosError } = await supabase
+            .from('estados')
+            .select('id, nombre');
+        if (estadosError) {
+            console.error('Error fetching estados:', estadosError);
+        }
+        const estadosMap = new Map<string, number>(
+            (estadosData || []).map((e: any) => [e.nombre, e.id])
+        );
+        setEstadoIds(estadosMap);
 
         // Perfil y rol de Ribera
         const { data: profile } = await supabase
@@ -146,11 +165,29 @@ const MobileDetalleOrden = () => {
                 persona_contacto: item.dest_nombre || '',
                 telefono_contacto: item.dest_tel || '',
                 num_documento: item.num_documento || '',
-                creado_en: item.creado_en
+                creado_en: item.creado_en,
+                estado_id: item.estado_id
             });
 
             setTipoServicioNombre(item.tipos_servicios?.nombre || 'General');
             setMaterialesOrden(item.servicios_materiales || []);
+
+            // Auto-marcar como "En curso" la primera vez que el técnico abre el servicio
+            const pendienteId = estadosMap.get('Pendiente');
+            const enCursoId = estadosMap.get('En curso');
+            if (pendienteId && enCursoId && item.estado_id === pendienteId) {
+                const { error: updateError } = await supabase
+                    .from('servicios')
+                    .update({ estado_id: enCursoId })
+                    .eq('id', id);
+                if (updateError) {
+                    console.error('Error updating servicio to En curso:', updateError);
+                    setCustomError('No se pudo marcar el servicio como "En curso": ' + updateError.message);
+                } else {
+                    // Actualizar el estado local para que el resto del formulario lo vea
+                    setOrden((prev: any) => prev ? { ...prev, estado_id: enCursoId } : prev);
+                }
+            }
 
             if (item.creado_en) {
                 setFecha(new Date(item.creado_en).toISOString().split('T')[0]);
@@ -192,7 +229,7 @@ const MobileDetalleOrden = () => {
         setSelectedMinuto(0);
         setFecha(new Date().toISOString().split('T')[0]);
         setFirmaDataUrl(null);
-        setConcluido(orden?.estado_id === 3);
+        setConcluido(orden?.estado_id === estadoIds.get('Terminado'));
 
         const ctx = canvasRef.current?.getContext('2d');
         if (ctx && canvasRef.current) {
@@ -214,8 +251,8 @@ const MobileDetalleOrden = () => {
                          rep.firma_url.length > 50; 
         setHasSignature(isSigned);
         setFirmaDataUrl(rep.firma_url || null);
-        setConcluido(orden?.estado_id === 3);
-        
+        setConcluido(orden?.estado_id === estadoIds.get('Terminado'));
+
         const ctx = canvasRef.current?.getContext('2d');
         ctx?.clearRect(0, 0, canvasRef.current?.width || 0, canvasRef.current?.height || 0);
         
@@ -477,13 +514,13 @@ const MobileDetalleOrden = () => {
 
             const saveReport = async (data: any) => {
                 if (reporte?.id) {
-                    return await supabase.from('reportes').update(data).eq('id', reporte.id);
+                    return await supabase.from('reportes').update(data).eq('id', reporte.id).select('id').single();
                 } else {
-                    return await supabase.from('reportes').insert(data);
+                    return await supabase.from('reportes').insert(data).select('id').single();
                 }
             };
 
-            const { error: errorReporte } = await saveReport(reportData);
+            const { data: savedReport, error: errorReporte } = await saveReport(reportData);
 
             if (errorReporte) {
                 console.error("Error saving report:", errorReporte);
@@ -491,25 +528,41 @@ const MobileDetalleOrden = () => {
                 setSubmitting(false);
                 return;
             }
-            
+
+            // Si es un parte nuevo, guardamos su id para que un reintento no duplique el registro
+            if (savedReport && !reporte?.id) {
+                setReporte({ ...reportData, id: savedReport.id });
+            }
+
             // Actualizar el estado de la orden (servicio) en Ribera
-            // 3 = Terminado, 2 = En curso
-            const newEstadoId = concluido ? 3 : 2; 
-            
+            const terminadoId = estadoIds.get('Terminado');
+            const enCursoId = estadoIds.get('En curso');
+            const newEstadoId = concluido ? terminadoId : enCursoId;
+
+            if (!newEstadoId) {
+                setCustomError("Error interno: no se encontró el estado de servicio necesario. Contacte con oficina.");
+                setSubmitting(false);
+                return;
+            }
+
             const { error: errorServicio } = await supabase
                 .from('servicios')
-                .update({ 
-                    estado_id: newEstadoId,
-                })
+                .update({ estado_id: newEstadoId })
                 .eq('id', id);
 
             if (errorServicio) {
                 console.error("Error updating orden status:", errorServicio);
-                // No bloqueamos, pero se podría registrar
+                setCustomError(
+                    "El parte se ha guardado, pero no se pudo actualizar el estado del servicio: " +
+                    errorServicio.message +
+                    ". Pulse 'Guardar cambios' de nuevo para reintentar."
+                );
+                setSubmitting(false);
+                return;
             }
 
             setSubmitting(false);
-            await fetchOrden(); 
+            await fetchOrden();
             setSaveSuccess(true);
         } catch (globalError) {
             console.error("Error global en handleComplete:", globalError);
