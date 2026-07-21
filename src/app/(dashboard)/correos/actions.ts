@@ -3,6 +3,26 @@
 import { createClient } from '@/lib/supabase/server';
 import { enviarEmail } from '@/lib/mail/mailer';
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
+
+/**
+ * Detecta la URL pública de la aplicación.
+ * Prioridad: variable de entorno NEXT_PUBLIC_APP_URL > cabeceras de la petición > localhost.
+ */
+async function getAppUrl(): Promise<string> {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+  }
+
+  try {
+    const h = await headers();
+    const host = h.get('host') || h.get('x-forwarded-host') || 'localhost:3000';
+    const proto = h.get('x-forwarded-proto') || 'http';
+    return `${proto}://${host}`;
+  } catch {
+    return 'http://localhost:3000';
+  }
+}
 
 /**
  * Escapa caracteres especiales para evitar inyección de HTML.
@@ -23,6 +43,7 @@ function escapeHtml(value: string | number | null | undefined): string {
  * la previsualización.
  */
 async function generarHtmlOrdenServicio(servicioId: number) {
+  const appUrl = getAppUrl();
   const supabase = await createClient();
 
   // 1. Cargar datos del servicio y sus materiales
@@ -53,7 +74,7 @@ async function generarHtmlOrdenServicio(servicioId: number) {
     : '--';
   const horaIniStr = s.hora_entrega_ini ? s.hora_entrega_ini.substring(0, 5) : '--';
   const horaFinStr = s.hora_entrega_fin ? s.hora_entrega_fin.substring(0, 5) : '--';
-  const urlAlbaran = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/servicios/${s.id}/print`;
+  const urlAlbaran = `${appUrl}/servicios/${s.id}/print`;
 
   // Campos de texto escapados para el email
   const codigoServicio = escapeHtml(s.codigo_servicio);
@@ -455,6 +476,8 @@ export async function enviarCorreoIncidencia(servicioId: number, emailDestinatar
   }
 
   try {
+    const appUrl = getAppUrl();
+
     const { data: s, error: servError } = await supabase
       .from('servicios')
       .select(`
@@ -472,7 +495,7 @@ export async function enviarCorreoIncidencia(servicioId: number, emailDestinatar
     const fechaStr = s.fecha_entrega
       ? new Date(s.fecha_entrega).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
       : '--';
-    const urlAlbaran = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/servicios/${s.id}/print`;
+    const urlAlbaran = `${appUrl}/servicios/${s.id}/print`;
 
     const htmlBody = `
       <!DOCTYPE html>
