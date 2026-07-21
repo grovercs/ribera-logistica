@@ -176,12 +176,13 @@ const MobileDetalleOrden = () => {
             const pendienteId = estadosMap.get('Pendiente');
             const enCursoId = estadosMap.get('En curso');
             if (pendienteId && enCursoId && item.estado_id === pendienteId) {
+                const numericId = parseInt(id || '0', 10);
                 const { error: updateError, count, status } = await supabase
                     .from('servicios')
                     .update({ estado_id: enCursoId }, { count: 'exact' })
-                    .eq('id', id);
+                    .eq('id', numericId);
 
-                console.log('Auto-marcar En curso:', { pendienteId, enCursoId, estadoActual: item.estado_id, count, status });
+                console.log('Auto-marcar En curso:', { pendienteId, enCursoId, estadoActual: item.estado_id, count, status, numericId });
 
                 if (updateError) {
                     console.error('Error updating servicio to En curso:', updateError);
@@ -553,12 +554,13 @@ const MobileDetalleOrden = () => {
                 return;
             }
 
+            const numericId = parseInt(id || '0', 10);
             const { error: errorServicio, count, status } = await supabase
                 .from('servicios')
                 .update({ estado_id: newEstadoId }, { count: 'exact' })
-                .eq('id', id);
+                .eq('id', numericId);
 
-            console.log('Finalizar servicio:', { newEstadoId, count, status });
+            console.log('Finalizar servicio:', { newEstadoId, count, status, numericId });
 
             if (errorServicio) {
                 console.error("Error updating orden status:", errorServicio);
