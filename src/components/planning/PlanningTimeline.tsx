@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, User, Calendar, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Calendar, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import ServicioModal from '../servicios/ServicioModal';
 import ServicioTooltip from './ServicioTooltip';
 import { createClient } from '@/lib/supabase/client';
@@ -128,6 +128,27 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
   useEffect(() => {
     setServicios(initialServicios);
   }, [initialServicios]);
+
+  // Auto-refresco periódico y al volver a la pestaña para reflejar cambios desde la app móvil
+  const [refreshing, setRefreshing] = useState(false);
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    const sync = async () => {
+      setRefreshing(true);
+      await refreshServicios();
+      setRefreshing(false);
+    };
+
+    interval = setInterval(sync, 30000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') sync();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [startDate]);
 
   // Detectar dispositivo táctil (una sola vez al montar)
   useEffect(() => {
@@ -489,6 +510,16 @@ export default function PlanningTimeline({ initialStartDateStr, initialServicios
             </select>
           </div>
         </div>
+
+        {/* Botón refrescar */}
+        <button
+          onClick={() => refreshServicios()}
+          disabled={refreshing}
+          className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-800 transition-all border border-slate-200 bg-white"
+          title="Refrescar servicios"
+        >
+          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+        </button>
 
         {/* Navegador Quincenal */}
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">

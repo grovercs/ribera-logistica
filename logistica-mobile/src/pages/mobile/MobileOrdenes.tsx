@@ -138,13 +138,23 @@ const MobileOrdenes = () => {
                         <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mt-0.5">{currentUserRole}</p>
                     </div>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-1 text-slate-500 hover:text-red-500 transition-colors text-xs font-bold px-2 py-1 rounded-lg hover:bg-red-50"
-                >
-                    <span className="material-symbols-outlined text-[18px]">logout</span>
-                    Salir
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={refreshData}
+                        disabled={loading}
+                        className="flex items-center gap-1 text-slate-500 hover:text-primary transition-colors text-xs font-bold px-2 py-1 rounded-lg hover:bg-primary/5 disabled:opacity-50"
+                        title="Refrescar servicios"
+                    >
+                        <span className={`material-symbols-outlined text-[18px] ${loading ? 'animate-spin' : ''}`}>refresh</span>
+                    </button>
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-1 text-slate-500 hover:text-red-500 transition-colors text-xs font-bold px-2 py-1 rounded-lg hover:bg-red-50"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">logout</span>
+                        Salir
+                    </button>
+                </div>
             </div>
 
             <div className="p-4 space-y-4">
@@ -203,6 +213,11 @@ const MobileOrdenes = () => {
                         );
                     })
                 )}
+            </div>
+
+            <div className="px-4 pb-6 text-center">
+                <p className="text-[9px] text-slate-400 font-mono">Build: v1.0.4-2026-07-20-02</p>
+                <p className="text-[9px] text-slate-400 mt-1">Si los estados no se actualizan, cierra la app y vuelve a abrirla.</p>
             </div>
         </div>
     );

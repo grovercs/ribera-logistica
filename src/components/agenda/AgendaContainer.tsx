@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AgendaFilters from './AgendaFilters';
 import AgendaTable from './AgendaTable';
 import { createClient } from '@/lib/supabase/client';
+import { RefreshCw } from 'lucide-react';
 
 interface AgendaContainerProps {
   initialServicios: any[];
@@ -20,9 +21,11 @@ export default function AgendaContainer({ initialServicios, catalogos }: AgendaC
   const [selectedTiendaId, setSelectedTiendaId] = useState<number | null>(null);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Refrescar lista de servicios
   const refreshList = async () => {
+    setRefreshing(true);
     const supabase = createClient();
     const { data } = await supabase
       .from('servicios')
@@ -35,11 +38,31 @@ export default function AgendaContainer({ initialServicios, catalogos }: AgendaC
         empleados(nombre)
       `)
       .order('fecha_entrega', { ascending: true });
-    
+
     if (data) {
       setServicios(data);
     }
+    setRefreshing(false);
   };
+
+  // Auto-refresco periódico y al volver a la pestaña para reflejar cambios desde la app móvil
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    const sync = async () => {
+      setRefreshing(true);
+      await refreshList();
+    };
+
+    interval = setInterval(sync, 30000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') sync();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
 
   // Filtrado y ordenación
   const getFilteredServicios = () => {
@@ -125,7 +148,18 @@ export default function AgendaContainer({ initialServicios, catalogos }: AgendaC
 
   return (
     <div className="space-y-6">
-      
+
+      <div className="flex items-center justify-end">
+        <button
+          onClick={refreshList}
+          disabled={refreshing}
+          className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-800 transition-all border border-slate-200 bg-white"
+          title="Refrescar agenda"
+        >
+          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+        </button>
+      </div>
+
       {/* Filtros */}
       <AgendaFilters
         filtroRapido={filtroRapido}

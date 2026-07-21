@@ -1298,6 +1298,10 @@ const MobileDetalleOrden = () => {
                     </div>
                 </div>
             )}
+
+            <div className="px-4 pb-6 text-center">
+                <p className="text-[9px] text-slate-400 font-mono">Build: v1.0.4-2026-07-20-02</p>
+            </div>
         </div>
     );
 };
