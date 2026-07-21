@@ -109,7 +109,7 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
                     </td>
                     
                     {/* Horario */}
-                    <td className="px-4 py-3 font-semibold text-slate-800">
+                    <td className="px-4 py-3 font-semibold">
                       {formatHora(s.hora_entrega_ini)} - {formatHora(s.hora_entrega_fin)}
                     </td>
                     
@@ -127,7 +127,7 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
                     {/* Técnico */}
                     <td className="px-4 py-3 truncate max-w-[100px]" title={s.empleados?.nombre}>
                       {s.empleados?.nombre || (
-                        <span className="text-slate-400 italic font-normal text-[10px]">Sin asignar</span>
+                        <span className="italic font-normal text-[10px] opacity-70">Sin asignar</span>
                       )}
                     </td>
                     
@@ -142,7 +142,7 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
                     </td>
                     
                     {/* Total */}
-                    <td className="px-4 py-3 text-right font-black text-slate-900">
+                    <td className="px-4 py-3 text-right font-black">
                       {Number(s.total || 0).toFixed(2)} €
                     </td>
                     
