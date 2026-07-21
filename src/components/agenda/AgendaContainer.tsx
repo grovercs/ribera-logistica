@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import AgendaFilters from './AgendaFilters';
 import AgendaTable from './AgendaTable';
 import { createClient } from '@/lib/supabase/client';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
 interface AgendaContainerProps {
   initialServicios: any[];
@@ -19,9 +19,25 @@ export default function AgendaContainer({ initialServicios, catalogos }: AgendaC
   const [searchText, setSearchText] = useState<string>('');
   const [selectedEmpleadoId, setSelectedEmpleadoId] = useState<number | null>(null);
   const [selectedTiendaId, setSelectedTiendaId] = useState<number | null>(null);
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+
+  // Rango de fechas por defecto: últimos 3 meses, con vista de 1 mes paginado
+  const hoy = new Date();
+  const mesActualInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  const mesActualFin = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+  const tresMesesAtras = new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1);
+
+  const [viewStartDate, setViewStartDate] = useState<Date>(mesActualInicio);
+  const [viewEndDate, setViewEndDate] = useState<Date>(mesActualFin);
+  const [globalStartDate, setGlobalStartDate] = useState<Date>(tresMesesAtras);
+  const [globalEndDate, setGlobalEndDate] = useState<Date>(mesActualFin);
   const [refreshing, setRefreshing] = useState(false);
+
+  const formatDateInput = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
 
   // Refrescar lista de servicios
   const refreshList = async () => {
@@ -37,6 +53,8 @@ export default function AgendaContainer({ initialServicios, catalogos }: AgendaC
         tiendas(nombre),
         empleados(nombre)
       `)
+      .gte('fecha_entrega', formatDateInput(globalStartDate))
+      .lte('fecha_entrega', formatDateInput(globalEndDate))
       .order('fecha_entrega', { ascending: true });
 
     if (data) {
@@ -133,15 +151,34 @@ export default function AgendaContainer({ initialServicios, catalogos }: AgendaC
       list = list.filter(s => s.tienda_id === selectedTiendaId);
     }
 
-    // 5. Filtrar por Rango de Fechas
-    if (startDate) {
-      list = list.filter(s => s.fecha_entrega && s.fecha_entrega >= startDate);
-    }
-    if (endDate) {
-      list = list.filter(s => s.fecha_entrega && s.fecha_entrega <= endDate);
-    }
+    // 5. Filtrar por vista paginada (1 mes)
+    list = list.filter(s =>
+      s.fecha_entrega &&
+      s.fecha_entrega >= formatDateInput(viewStartDate) &&
+      s.fecha_entrega <= formatDateInput(viewEndDate)
+    );
 
     return list;
+  };
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newStart = new Date(viewStartDate);
+    if (direction === 'prev') {
+      newStart.setMonth(newStart.getMonth() - 1);
+    } else {
+      newStart.setMonth(newStart.getMonth() + 1);
+    }
+    const newEnd = new Date(newStart.getFullYear(), newStart.getMonth() + 1, 0);
+    setViewStartDate(newStart);
+    setViewEndDate(newEnd);
+
+    // Si la nueva vista se sale del rango global cargado, ampliar el rango
+    if (newStart < globalStartDate) {
+      setGlobalStartDate(newStart);
+    }
+    if (newEnd > globalEndDate) {
+      setGlobalEndDate(newEnd);
+    }
   };
 
   const filteredList = getFilteredServicios();
@@ -149,15 +186,43 @@ export default function AgendaContainer({ initialServicios, catalogos }: AgendaC
   return (
     <div className="space-y-6">
 
-      <div className="flex items-center justify-end">
-        <button
-          onClick={refreshList}
-          disabled={refreshing}
-          className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-800 transition-all border border-slate-200 bg-white"
-          title="Refrescar agenda"
-        >
-          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-        </button>
+      <div className="flex items-center justify-between gap-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigateMonth('prev')}
+            className="p-2 hover:bg-slate-100 rounded-xl text-slate-600 transition-all border border-slate-200"
+            title="Mes anterior"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-200">
+            <Calendar size={16} className="text-primary" />
+            <span className="text-sm font-bold text-slate-800">
+              {viewStartDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+            </span>
+          </div>
+          <button
+            onClick={() => navigateMonth('next')}
+            className="p-2 hover:bg-slate-100 rounded-xl text-slate-600 transition-all border border-slate-200"
+            title="Mes siguiente"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-slate-400 font-semibold hidden sm:inline">
+            Mostrando desde {globalStartDate.toLocaleDateString('es-ES')} hasta {globalEndDate.toLocaleDateString('es-ES')}
+          </span>
+          <button
+            onClick={refreshList}
+            disabled={refreshing}
+            className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-800 transition-all border border-slate-200 bg-white"
+            title="Refrescar agenda"
+          >
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -170,11 +235,9 @@ export default function AgendaContainer({ initialServicios, catalogos }: AgendaC
         setSelectedEmpleadoId={setSelectedEmpleadoId}
         selectedTiendaId={selectedTiendaId}
         setSelectedTiendaId={setSelectedTiendaId}
-        startDate={startDate}
-        setStartDate={setStartDate}
-        endDate={endDate}
-        setEndDate={setEndDate}
         catalogos={catalogos}
+        onRefresh={refreshList}
+        refreshing={refreshing}
       />
 
       {/* Tabla */}

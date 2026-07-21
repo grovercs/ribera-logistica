@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, Calendar, Filter, X, Eye, AlertCircle, Clock, CheckSquare } from 'lucide-react';
+import { Search, Calendar, Filter, X, Eye, AlertCircle, Clock, CheckSquare, RefreshCw } from 'lucide-react';
 
 interface CatalogoItem {
   id: number;
@@ -27,11 +27,9 @@ interface AgendaFiltersProps {
   setSelectedEmpleadoId: (id: number | null) => void;
   selectedTiendaId: number | null;
   setSelectedTiendaId: (id: number | null) => void;
-  startDate: string;
-  setStartDate: (val: string) => void;
-  endDate: string;
-  setEndDate: (val: string) => void;
   catalogos: Catalogos;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 export default function AgendaFilters({
@@ -43,11 +41,9 @@ export default function AgendaFilters({
   setSelectedEmpleadoId,
   selectedTiendaId,
   setSelectedTiendaId,
-  startDate,
-  setStartDate,
-  endDate,
-  setEndDate,
-  catalogos
+  catalogos,
+  onRefresh,
+  refreshing
 }: AgendaFiltersProps) {
 
   const clearFilters = () => {
@@ -55,17 +51,13 @@ export default function AgendaFilters({
     setSearchText('');
     setSelectedEmpleadoId(null);
     setSelectedTiendaId(null);
-    setStartDate('');
-    setEndDate('');
   };
 
-  const hasActiveFilters = 
+  const hasActiveFilters =
     filtroRapido !== 'todos_pendientes' ||
     searchText !== '' ||
     selectedEmpleadoId !== null ||
-    selectedTiendaId !== null ||
-    startDate !== '' ||
-    endDate !== '';
+    selectedTiendaId !== null;
 
   return (
     <div className="bg-white p-5 border border-slate-200 rounded-2xl shadow-sm space-y-5">
@@ -162,7 +154,8 @@ export default function AgendaFilters({
         </div>
       </div>
 
-      <div className="border-t border-slate-100 pt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="border-t border-slate-100 pt-4 flex items-center justify-between gap-4">
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
         
         {/* Buscador de Texto */}
         <div className="space-y-1">
@@ -209,27 +202,17 @@ export default function AgendaFilters({
           </select>
         </div>
 
-        {/* Rango de Fechas */}
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rango de Entrega</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-[10px] font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
-            />
-            <span className="text-slate-400 text-xs font-semibold">a</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-[10px] font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
-            />
-          </div>
-        </div>
-
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-800 transition-all border border-slate-200 bg-white self-start mt-5"
+          title="Refrescar agenda"
+        >
+          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+        </button>
       </div>
+    </div>
 
       {/* Botón de resetear filtros */}
       {hasActiveFilters && (

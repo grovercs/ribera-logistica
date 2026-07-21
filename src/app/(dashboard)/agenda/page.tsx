@@ -5,6 +5,13 @@ import AgendaContainer from '@/components/agenda/AgendaContainer';
 export default async function AgendaPage() {
   const supabase = await createClient();
 
+  // Calcular rango de carga: últimos 3 meses
+  const hoy = new Date();
+  const tresMesesAtras = new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1);
+  const finMesActual = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+  const globalStartStr = tresMesesAtras.toISOString().split('T')[0];
+  const globalEndStr = finMesActual.toISOString().split('T')[0];
+
   // Cargar catálogos y listado inicial en paralelo
   const [
     { data: tiendas },
@@ -29,6 +36,8 @@ export default async function AgendaPage() {
         tiendas(nombre),
         empleados(nombre)
       `)
+      .gte('fecha_entrega', globalStartStr)
+      .lte('fecha_entrega', globalEndStr)
       .order('fecha_entrega', { ascending: true })
   ]);
 
