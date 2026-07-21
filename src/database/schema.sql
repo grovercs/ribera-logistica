@@ -214,3 +214,16 @@ CREATE TABLE IF NOT EXISTS public.servicios_correos (
     error_log TEXT,
     fecha TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Configuración del servidor SMTP para envío de correos
+CREATE TABLE IF NOT EXISTS public.configuracion_correo (
+    id SERIAL PRIMARY KEY,
+    remitente_email TEXT NOT NULL,
+    remitente_nombre TEXT,
+    smtp_host TEXT NOT NULL,
+    smtp_port INTEGER NOT NULL DEFAULT 587,
+    smtp_secure BOOLEAN NOT NULL DEFAULT false,
+    smtp_user TEXT NOT NULL,
+    smtp_pass TEXT NOT NULL,
+    actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);

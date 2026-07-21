@@ -224,10 +224,22 @@ CREATE POLICY "Actualización y creación de incidencias" ON public.servicios_in
     );
 
 -- Historial de Correos
-CREATE POLICY "Lectura de historial de correos" ON public.correos_historial
+CREATE POLICY "Lectura de historial de correos" ON public.servicios_correos
     FOR SELECT TO authenticated
     USING (public.es_personal_logistica(auth.uid()));
 
-CREATE POLICY "Inserción en historial de correos" ON public.correos_historial
+CREATE POLICY "Inserción en historial de correos" ON public.servicios_correos
     FOR INSERT TO authenticated
+    WITH CHECK (public.es_personal_logistica(auth.uid()));
+
+-- Configuración de Correo (SMTP)
+ALTER TABLE public.configuracion_correo ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Lectura de configuración de correo" ON public.configuracion_correo
+    FOR SELECT TO authenticated
+    USING (public.es_personal_logistica(auth.uid()));
+
+CREATE POLICY "Gestión de configuración de correo" ON public.configuracion_correo
+    FOR ALL TO authenticated
+    USING (public.es_personal_logistica(auth.uid()))
     WITH CHECK (public.es_personal_logistica(auth.uid()));

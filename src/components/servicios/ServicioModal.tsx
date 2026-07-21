@@ -1,21 +1,23 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  X, 
-  Search, 
-  User, 
-  Plus, 
-  Trash2, 
-  FileText, 
-  MapPin, 
-  Phone, 
-  Save, 
+import {
+  X,
+  Search,
+  User,
+  Plus,
+  Trash2,
+  FileText,
+  MapPin,
+  Phone,
+  Save,
   Trash,
   CheckCircle,
   AlertTriangle,
   Printer,
-  Mail
+  Mail,
+  Eye,
+  ArrowLeft
 } from 'lucide-react';
 import {
   guardarServicio,
@@ -25,7 +27,7 @@ import {
   buscarPresupuestoCRM,
   obtenerPresupuestosClienteCRM
 } from '@/app/(dashboard)/planning/actions';
-import { enviarCorreoServicio } from '@/app/(dashboard)/correos/actions';
+import { enviarCorreoServicio, enviarCorreoIncidencia, previsualizarCorreoServicio } from '@/app/(dashboard)/correos/actions';
 import { createClient } from '@/lib/supabase/client';
 import ConfirmDialog from '../ui/ConfirmDialog';
 
@@ -97,6 +99,17 @@ export default function ServicioModal({
   const [pendingAction, setPendingAction] = useState<'save' | 'delete' | null>(null);
   const [emailInput, setEmailInput] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailMode, setEmailMode] = useState<'form' | 'preview'>('form');
+  const [emailPreviewHtml, setEmailPreviewHtml] = useState('');
+  const [emailPreviewSubject, setEmailPreviewSubject] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [incidenciaEmailModal, setIncidenciaEmailModal] = useState<{ open: boolean; idx: number | null; descripcion: string; email: string; sending: boolean }>({
+    open: false,
+    idx: null,
+    descripcion: '',
+    email: '',
+    sending: false
+  });
   const [searchCrmQuery, setSearchCrmQuery] = useState('');
   const [crmSuggestions, setCrmSuggestions] = useState<any[]>([]);
   const [showCrmSuggestions, setShowCrmSuggestions] = useState(false);
@@ -636,8 +649,33 @@ export default function ServicioModal({
     if (res.success) {
       alert("¡Correo enviado con éxito!");
       setShowEmailModal(false);
+      setEmailMode('form');
+      setEmailPreviewHtml('');
+      setEmailPreviewSubject('');
     } else {
       alert(`Error al enviar el correo: ${res.error}`);
+    }
+  };
+
+  const handlePreviewEmail = async () => {
+    if (!id) return;
+    setPreviewLoading(true);
+    setEmailMode('preview');
+    try {
+      const res = await previsualizarCorreoServicio(id);
+      if (res.success && res.html) {
+        setEmailPreviewHtml(res.html);
+        setEmailPreviewSubject(res.subject || '');
+      } else {
+        alert(res.error || 'No se pudo generar la vista previa del correo.');
+        setEmailMode('form');
+      }
+    } catch (err) {
+      console.error("Error al previsualizar correo:", err);
+      alert("Error al cargar la vista previa.");
+      setEmailMode('form');
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -1119,12 +1157,29 @@ export default function ServicioModal({
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
+                              {!inc.solucionada && clienteEmail && (
+                                <button
+                                  type="button"
+                                  onClick={() => setIncidenciaEmailModal({
+                                    open: true,
+                                    idx,
+                                    descripcion: inc.descripcion,
+                                    email: clienteEmail,
+                                    sending: false
+                                  })}
+                                  className="px-2 py-1 rounded text-[9px] font-bold uppercase transition-colors cursor-pointer bg-red-100 hover:bg-red-200 text-red-700 flex items-center gap-1"
+                                  title="Enviar aviso por email"
+                                >
+                                  <Mail size={12} />
+                                  <span>Avisar</span>
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => toggleIncidenciaLocal(idx)}
                                 className={`px-2 py-1 rounded text-[9px] font-bold uppercase transition-colors cursor-pointer ${
-                                  inc.solucionada 
-                                    ? 'bg-slate-200 hover:bg-slate-300 text-slate-700' 
+                                  inc.solucionada
+                                    ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
                                     : 'bg-red-100 hover:bg-red-200 text-red-700'
                                 }`}
                               >
@@ -1329,16 +1384,22 @@ export default function ServicioModal({
               </button>
             )}
 
-            {/* Enviar Correo (si es edición) */}
+            {/* Enviar al colaborador (si es edición) */}
             {id && (
               <button
                 type="button"
-                onClick={() => setShowEmailModal(true)}
+                onClick={() => {
+                  setEmailInput(clienteEmail || '');
+                  setEmailMode('form');
+                  setEmailPreviewHtml('');
+                  setEmailPreviewSubject('');
+                  setShowEmailModal(true);
+                }}
                 className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-                title="Enviar por Correo Electrónico"
+                title="Enviar orden de servicio al colaborador"
               >
                 <Mail size={14} className="text-slate-500" />
-                <span>Enviar Email</span>
+                <span>Enviar al Colaborador</span>
               </button>
             )}
             
@@ -1384,45 +1445,186 @@ export default function ServicioModal({
       {/* Submodal para solicitar el correo electrónico */}
       {showEmailModal && (
         <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className={`bg-white border border-slate-200 rounded-2xl w-full shadow-2xl flex flex-col max-h-[90vh] overflow-hidden transition-all ${emailMode === 'preview' ? 'max-w-4xl' : 'max-w-md'}`}>
+            <div className="p-6 space-y-4 overflow-y-auto">
+
+              <div className="flex items-center gap-3 text-slate-800">
+                <div className="p-2 bg-primary/5 text-primary rounded-lg">
+                  <Mail size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold">Enviar orden al colaborador</h3>
+                  <span className="text-[10px] text-slate-400 font-semibold block">
+                    {emailMode === 'preview'
+                      ? 'Revisa el correo antes de enviarlo al colaborador.'
+                      : 'La orden de servicio completa se enviará a la dirección indicada.'}
+                  </span>
+                </div>
+              </div>
+
+              {emailMode === 'form' ? (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase block">Email del colaborador</label>
+                    <input
+                      type="email"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
+                      placeholder="correo@ejemplo.com"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailModal(false)}
+                      className="bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold cursor-pointer transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePreviewEmail}
+                      disabled={previewLoading}
+                      className="bg-white hover:bg-slate-50 text-primary border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
+                    >
+                      {previewLoading ? 'Generando...' : (
+                        <>
+                          <Eye size={14} />
+                          <span>Vista previa</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {emailPreviewSubject && (
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase block">Asunto</span>
+                      <span className="text-xs font-semibold text-slate-700">{emailPreviewSubject}</span>
+                    </div>
+                  )}
+
+                  <div className="relative">
+                    {previewLoading && (
+                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl flex items-center justify-center z-10">
+                        <span className="text-xs font-bold text-slate-500">Generando vista previa...</span>
+                      </div>
+                    )}
+                    <iframe
+                      srcDoc={emailPreviewHtml}
+                      title="Vista previa del correo"
+                      className="w-full h-[380px] rounded-xl border border-slate-200 bg-white"
+                      sandbox="allow-same-origin"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setEmailMode('form')}
+                      className="bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <ArrowLeft size={14} />
+                      <span>Volver</span>
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowEmailModal(false)}
+                        className="bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold cursor-pointer transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSendEmail}
+                        disabled={sendingEmail || previewLoading}
+                        className="bg-primary hover:bg-primary/90 text-white rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all disabled:opacity-50"
+                      >
+                        {sendingEmail ? 'Enviando...' : (
+                          <>
+                            <Mail size={14} />
+                            <span>Enviar Correo</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submodal para enviar aviso de incidencia por email */}
+      {incidenciaEmailModal.open && (
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4">
-            
+
             <div className="flex items-center gap-3 text-slate-800">
-              <div className="p-2 bg-primary/5 text-primary rounded-lg">
-                <Mail size={18} />
+              <div className="p-2 bg-red-50 text-red-600 rounded-lg">
+                <AlertTriangle size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-bold">Enviar Albarán por Email</h3>
-                <span className="text-[10px] text-slate-400 font-semibold block">Introduce la dirección de correo electrónico del receptor</span>
+                <h3 className="text-sm font-bold">Avisar de la incidencia por email</h3>
+                <span className="text-[10px] text-slate-400 font-semibold block">El cliente recibirá un aviso con el detalle de la incidencia.</span>
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-[9px] font-bold text-slate-400 uppercase block">Email del Cliente</label>
+              <label className="text-[9px] font-bold text-slate-400 uppercase block">Email del colaborador / cliente</label>
               <input
                 type="email"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
+                value={incidenciaEmailModal.email}
+                onChange={(e) => setIncidenciaEmailModal(prev => ({ ...prev, email: e.target.value }))}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
                 placeholder="correo@ejemplo.com"
-                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[9px] font-bold text-slate-400 uppercase block">Descripción de la incidencia</label>
+              <textarea
+                value={incidenciaEmailModal.descripcion}
+                onChange={(e) => setIncidenciaEmailModal(prev => ({ ...prev, descripcion: e.target.value }))}
+                rows={3}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all resize-none"
               />
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setShowEmailModal(false)}
+                onClick={() => setIncidenciaEmailModal(prev => ({ ...prev, open: false }))}
                 className="bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold cursor-pointer transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
-                onClick={handleSendEmail}
-                disabled={sendingEmail}
-                className="bg-primary hover:bg-primary/90 text-white rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all disabled:opacity-50"
+                disabled={incidenciaEmailModal.sending}
+                onClick={async () => {
+                  if (!id) return;
+                  setIncidenciaEmailModal(prev => ({ ...prev, sending: true }));
+                  const res = await enviarCorreoIncidencia(id, incidenciaEmailModal.email, incidenciaEmailModal.descripcion);
+                  setIncidenciaEmailModal(prev => ({ ...prev, sending: false }));
+                  if (res.success) {
+                    alert('Aviso de incidencia enviado correctamente.');
+                    setIncidenciaEmailModal(prev => ({ ...prev, open: false }));
+                  } else {
+                    alert(`Error al enviar: ${res.error}`);
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-500 text-white rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-red-500/10 hover:shadow-red-500/20 transition-all disabled:opacity-50"
               >
-                {sendingEmail ? 'Enviando...' : 'Enviar Correo'}
+                <Mail size={14} />
+                <span>{incidenciaEmailModal.sending ? 'Enviando...' : 'Enviar aviso'}</span>
               </button>
             </div>
 

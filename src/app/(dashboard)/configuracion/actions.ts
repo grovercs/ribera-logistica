@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import nodemailer from 'nodemailer';
 
 interface EmpleadoInput {
   id?: number;
@@ -169,5 +170,149 @@ export async function crearAccesoUsuario(empleadoId: number, email: string, cont
   } catch (error: any) {
     console.error("Error al crear cuenta de acceso:", error);
     return { error: error.message || 'Error al crear la cuenta de acceso.' };
+  }
+}
+
+export interface ConfiguracionCorreoInput {
+  remitente_email: string;
+  remitente_nombre: string;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_secure: boolean;
+  smtp_user: string;
+  smtp_pass: string;
+}
+
+/**
+ * Obtiene la configuración SMTP guardada en Supabase.
+ */
+export async function obtenerConfiguracionCorreo() {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from('configuracion_correo')
+      .select('*')
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return { success: true, config: data };
+  } catch (error: any) {
+    console.error("Error al obtener configuración de correo:", error);
+    return { success: false, error: error.message || 'Error al cargar la configuración.' };
+  }
+}
+
+/**
+ * Guarda la configuración SMTP en Supabase.
+ */
+export async function guardarConfiguracionCorreo(config: ConfiguracionCorreoInput) {
+  const supabase = await createClient();
+
+  if (!config.remitente_email?.includes('@')) {
+    return { success: false, error: 'La dirección de correo del remitente no es válida.' };
+  }
+  if (!config.smtp_host?.trim()) {
+    return { success: false, error: 'El servidor SMTP es obligatorio.' };
+  }
+  if (!config.smtp_user?.trim()) {
+    return { success: false, error: 'El usuario SMTP es obligatorio.' };
+  }
+  if (!config.smtp_pass?.trim()) {
+    return { success: false, error: 'La contraseña SMTP es obligatoria.' };
+  }
+
+  const port = Number(config.smtp_port) || 587;
+
+  try {
+    // Solo mantenemos un registro de configuración
+    const { data: existente } = await supabase
+      .from('configuracion_correo')
+      .select('id')
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const payload = {
+      remitente_email: config.remitente_email.trim(),
+      remitente_nombre: config.remitente_nombre?.trim() || null,
+      smtp_host: config.smtp_host.trim(),
+      smtp_port: port,
+      smtp_secure: !!config.smtp_secure,
+      smtp_user: config.smtp_user.trim(),
+      smtp_pass: config.smtp_pass,
+      actualizado_en: new Date().toISOString()
+    };
+
+    if (existente?.id) {
+      const { error } = await supabase
+        .from('configuracion_correo')
+        .update(payload)
+        .eq('id', existente.id);
+
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('configuracion_correo')
+        .insert(payload);
+
+      if (error) throw error;
+    }
+
+    revalidatePath('/configuracion');
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error al guardar configuración de correo:", error);
+    return { success: false, error: error.message || 'Error al guardar la configuración.' };
+  }
+}
+
+/**
+ * Prueba la configuración SMTP intentando conectar y enviar un email de prueba.
+ */
+export async function probarConfiguracionCorreo(config: ConfiguracionCorreoInput, emailPrueba?: string) {
+  const destinatario = emailPrueba?.trim() && emailPrueba.includes('@')
+    ? emailPrueba.trim()
+    : config.remitente_email.trim();
+
+  const transporter = nodemailer.createTransport({
+    host: config.smtp_host.trim(),
+    port: Number(config.smtp_port) || 587,
+    secure: !!config.smtp_secure,
+    auth: {
+      user: config.smtp_user.trim(),
+      pass: config.smtp_pass
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+
+  try {
+    await transporter.verify();
+
+    const remitente = config.remitente_nombre?.trim()
+      ? `"${config.remitente_nombre.trim()}" <${config.remitente_email.trim()}>`
+      : config.remitente_email.trim();
+
+    await transporter.sendMail({
+      from: remitente,
+      to: destinatario,
+      subject: 'BigMat Ribera - Correo de prueba',
+      html: `
+        <h2>Configuración de correo correcta</h2>
+        <p>Este es un email de prueba enviado desde la configuración de BigMat Ribera.</p>
+        <p>Servidor SMTP: <strong>${config.smtp_host}:${config.smtp_port}</strong></p>
+        <p>Remitente: <strong>${remitente}</strong></p>
+      `
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error al probar configuración SMTP:", error);
+    return { success: false, error: error.message || 'No se pudo conectar con el servidor SMTP.' };
   }
 }

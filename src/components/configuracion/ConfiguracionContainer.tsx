@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Edit2, CheckCircle2, XCircle, Phone, UserPlus, Settings, Store, Euro, Landmark, Building2, KeyRound } from 'lucide-react';
-import { guardarEmpleado, toggleEmpleadoActivo, crearAccesoUsuario } from '@/app/(dashboard)/configuracion/actions';
+import { Plus, Edit2, CheckCircle2, XCircle, Phone, UserPlus, Settings, Store, Euro, Landmark, Building2, KeyRound, Mail, ShieldCheck, Send, Save } from 'lucide-react';
+import { guardarEmpleado, toggleEmpleadoActivo, crearAccesoUsuario, obtenerConfiguracionCorreo, guardarConfiguracionCorreo, probarConfiguracionCorreo, ConfiguracionCorreoInput } from '@/app/(dashboard)/configuracion/actions';
 import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface Empleado {
@@ -26,13 +26,25 @@ interface Tienda {
   nombre: string;
 }
 
+interface ConfiguracionCorreo {
+  id?: number;
+  remitente_email: string;
+  remitente_nombre: string;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_secure: boolean;
+  smtp_user: string;
+  smtp_pass: string;
+}
+
 interface ConfiguracionContainerProps {
   initialEmpleados: Empleado[];
   initialTiendas: Tienda[];
+  initialConfigCorreo: ConfiguracionCorreo | null;
 }
 
-export default function ConfiguracionContainer({ initialEmpleados, initialTiendas }: ConfiguracionContainerProps) {
-  const [activeTab, setActiveTab] = useState<'tecnicos' | 'tiendas'>('tecnicos');
+export default function ConfiguracionContainer({ initialEmpleados, initialTiendas, initialConfigCorreo }: ConfiguracionContainerProps) {
+  const [activeTab, setActiveTab] = useState<'tecnicos' | 'tiendas' | 'correo'>('tecnicos');
   const [empleados, setEmpleados] = useState<Empleado[]>(initialEmpleados);
   const [tiendas, setTiendas] = useState<Tienda[]>(initialTiendas);
 
@@ -64,6 +76,20 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
   // Técnico pendiente de (des)activar, esperando confirmación del usuario
   const [pendingToggle, setPendingToggle] = useState<Empleado | null>(null);
   const [toggling, setToggling] = useState(false);
+
+  // Configuración de correo SMTP
+  const [configCorreo, setConfigCorreo] = useState<ConfiguracionCorreo>(initialConfigCorreo || {
+    remitente_email: '',
+    remitente_nombre: '',
+    smtp_host: '',
+    smtp_port: 587,
+    smtp_secure: false,
+    smtp_user: '',
+    smtp_pass: ''
+  });
+  const [savingCorreo, setSavingCorreo] = useState(false);
+  const [testingCorreo, setTestingCorreo] = useState(false);
+  const [emailPrueba, setEmailPrueba] = useState('');
 
   // Refrescar lista de operarios
   const refreshList = async () => {
@@ -186,6 +212,31 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
     }
   };
 
+  const handleSaveConfigCorreo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingCorreo(true);
+    const res = await guardarConfiguracionCorreo(configCorreo);
+    setSavingCorreo(false);
+
+    if (res.success) {
+      alert('Configuración de correo guardada correctamente.');
+    } else {
+      alert(`Error al guardar la configuración: ${res.error}`);
+    }
+  };
+
+  const handleTestConfigCorreo = async () => {
+    setTestingCorreo(true);
+    const res = await probarConfiguracionCorreo(configCorreo, emailPrueba);
+    setTestingCorreo(false);
+
+    if (res.success) {
+      alert(`Correo de prueba enviado correctamente a ${emailPrueba || configCorreo.remitente_email}.`);
+    } else {
+      alert(`Error al enviar el correo de prueba: ${res.error}`);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       
@@ -217,6 +268,17 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
           >
             <Store size={15} />
             <span>Tiendas / Almacenes</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('correo')}
+            className={`w-full text-left px-5 py-3 text-xs font-bold flex items-center gap-2.5 transition-colors cursor-pointer ${
+              activeTab === 'correo'
+                ? 'bg-primary/5 text-primary border-l-4 border-primary'
+                : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Mail size={15} />
+            <span>Envío de Correo</span>
           </button>
         </div>
       </div>
@@ -365,7 +427,7 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
         {/* PESTAÑA TIENDAS */}
         {activeTab === 'tiendas' && (
           <div className="space-y-4">
-            
+
             <div className="bg-white p-4 border border-slate-200 rounded-2xl shadow-sm">
               <h3 className="text-sm font-bold text-slate-800">Catálogo de Tiendas / Almacenes</h3>
               <p className="text-[10px] text-slate-400 font-semibold">Listado de puntos de venta y centros logísticos del sistema.</p>
@@ -393,6 +455,161 @@ export default function ConfiguracionContainer({ initialEmpleados, initialTienda
             </div>
 
           </div>
+        )}
+
+        {/* PESTAÑA ENVÍO DE CORREO */}
+        {activeTab === 'correo' && (
+          <form onSubmit={handleSaveConfigCorreo} className="space-y-4">
+
+            <div className="bg-white p-4 border border-slate-200 rounded-2xl shadow-sm flex items-start justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Configuración de Envío de Correo</h3>
+                <p className="text-[10px] text-slate-400 font-semibold">Datos del servidor SMTP y remitente para el envío de órdenes e incidencias.</p>
+              </div>
+              <div className="p-2 bg-primary/5 text-primary rounded-lg">
+                <Mail size={18} />
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Dirección de Email (remitente)</label>
+                  <input
+                    type="email"
+                    value={configCorreo.remitente_email}
+                    onChange={(e) => setConfigCorreo({ ...configCorreo, remitente_email: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
+                    placeholder="ventas@vielhacomputer.com"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Nombre del Remitente</label>
+                  <input
+                    type="text"
+                    value={configCorreo.remitente_nombre}
+                    onChange={(e) => setConfigCorreo({ ...configCorreo, remitente_nombre: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
+                    placeholder="BigMat Ribera"
+                  />
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Servidor SMTP</label>
+                  <input
+                    type="text"
+                    value={configCorreo.smtp_host}
+                    onChange={(e) => setConfigCorreo({ ...configCorreo, smtp_host: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
+                    placeholder="smtp.1and1.es"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Puerto SMTP</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={65535}
+                    value={configCorreo.smtp_port}
+                    onChange={(e) => setConfigCorreo({ ...configCorreo, smtp_port: Number(e.target.value) })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
+                    placeholder="587"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1 flex flex-col justify-end">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={configCorreo.smtp_secure}
+                      onChange={(e) => setConfigCorreo({ ...configCorreo, smtp_secure: e.target.checked })}
+                      className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-xs font-semibold text-slate-700">Conexión segura (SSL/TLS)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">Activar para puerto 465; desactivar para 587.</span>
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Usuario SMTP</label>
+                  <input
+                    type="text"
+                    value={configCorreo.smtp_user}
+                    onChange={(e) => setConfigCorreo({ ...configCorreo, smtp_user: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
+                    placeholder="ventas@vielhacomputer.com"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Contraseña SMTP</label>
+                  <input
+                    type="password"
+                    value={configCorreo.smtp_pass}
+                    onChange={(e) => setConfigCorreo({ ...configCorreo, smtp_pass: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+              </div>
+
+              <hr className="border-slate-100" />
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-slate-800">
+                  <ShieldCheck size={16} className="text-primary" />
+                  <h4 className="text-xs font-bold">Comprobar configuración</h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase block">Email de prueba</label>
+                    <input
+                      type="email"
+                      value={emailPrueba}
+                      onChange={(e) => setEmailPrueba(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-primary focus:bg-white transition-all"
+                      placeholder="correo@ejemplo.com (opcional; si está vacío se envía al remitente)"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={handleTestConfigCorreo}
+                      disabled={testingCorreo}
+                      className="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
+                    >
+                      {testingCorreo ? 'Comprobando...' : (
+                        <>
+                          <Send size={14} className="text-primary" />
+                          <span>Enviar prueba</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={savingCorreo}
+                  className="bg-primary hover:bg-primary/90 text-white rounded-xl px-5 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all disabled:opacity-50"
+                >
+                  <Save size={14} />
+                  <span>{savingCorreo ? 'Guardando...' : 'Guardar Configuración'}</span>
+                </button>
+              </div>
+            </div>
+
+          </form>
         )}
 
       </div>

@@ -8,46 +8,117 @@ interface EmailPayload {
   servicioId: number;
 }
 
+interface SmtpConfig {
+  remitente_email: string;
+  remitente_nombre?: string | null;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_secure: boolean;
+  smtp_user: string;
+  smtp_pass: string;
+}
+
 /**
- * Crea el transportador SMTP de nodemailer basándose en variables de entorno.
- * Si no están configuradas, utiliza una cuenta mock de Ethereal para desarrollo y evitar fallos.
+ * Carga la configuración SMTP guardada en Supabase.
+ * Si no existe, devuelve null.
  */
-function getTransporter() {
+async function obtenerConfiguracionSmtp(): Promise<SmtpConfig | null> {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from('configuracion_correo')
+      .select('*')
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+      remitente_email: data.remitente_email,
+      remitente_nombre: data.remitente_nombre,
+      smtp_host: data.smtp_host,
+      smtp_port: data.smtp_port,
+      smtp_secure: data.smtp_secure,
+      smtp_user: data.smtp_user,
+      smtp_pass: data.smtp_pass
+    };
+  } catch (err) {
+    console.error("Error al cargar configuración SMTP de Supabase:", err);
+    return null;
+  }
+}
+
+/**
+ * Crea el transportador SMTP de nodemailer.
+ * Prioriza la configuración guardada en Supabase; si no hay, usa variables de entorno.
+ * Si tampoco hay variables de entorno, utiliza una cuenta mock de Ethereal para desarrollo.
+ */
+async function getTransporter() {
+  const dbConfig = await obtenerConfiguracionSmtp();
+
+  if (dbConfig) {
+    return {
+      config: dbConfig,
+      transporter: nodemailer.createTransport({
+        host: dbConfig.smtp_host,
+        port: dbConfig.smtp_port,
+        secure: dbConfig.smtp_secure,
+        auth: {
+          user: dbConfig.smtp_user,
+          pass: dbConfig.smtp_pass
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      })
+    };
+  }
+
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT) || 587;
-  const secure = process.env.SMTP_SECURE === 'true'; // true para puerto 465, false para 587
+  const secure = process.env.SMTP_SECURE === 'true';
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
   if (!host || !user || !pass) {
     console.warn("SMTP no configurado en variables de entorno. Usando transportador mock para desarrollo.");
-    // Devolver un transportador mock que siempre simula éxito
     return {
-      sendMail: async (mailOptions: any) => {
-        console.log("---- ENVIANDO EMAIL MOCK ----");
-        console.log(`De: ${mailOptions.from}`);
-        console.log(`Para: ${mailOptions.to}`);
-        console.log(`Asunto: ${mailOptions.subject}`);
-        console.log(`Cuerpo: (HTML de ${mailOptions.html.length} bytes)`);
-        console.log("------------------------------");
-        return { messageId: 'mock-id-12345' };
-      }
+      config: null,
+      transporter: {
+        sendMail: async (mailOptions: any) => {
+          console.log("---- ENVIANDO EMAIL MOCK ----");
+          console.log(`De: ${mailOptions.from}`);
+          console.log(`Para: ${mailOptions.to}`);
+          console.log(`Asunto: ${mailOptions.subject}`);
+          console.log(`Cuerpo: (HTML de ${mailOptions.html.length} bytes)`);
+          console.log("------------------------------");
+          return { messageId: 'mock-id-12345' };
+        },
+        verify: async () => true
+      } as any
     };
   }
 
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: {
-      user,
-      pass
+  return {
+    config: {
+      remitente_email: process.env.SMTP_FROM?.match(/<(.+)>/)?.[1] || user,
+      remitente_nombre: process.env.SMTP_FROM?.match(/^"?([^"<]+)"?/)?.[1] || null,
+      smtp_host: host,
+      smtp_port: port,
+      smtp_secure: secure,
+      smtp_user: user,
+      smtp_pass: pass
     },
-    tls: {
-      // Evitar fallos de certificados autofirmados
-      rejectUnauthorized: false
-    }
-  });
+    transporter: nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false }
+    })
+  };
 }
 
 /**
@@ -55,14 +126,18 @@ function getTransporter() {
  */
 export async function enviarEmail({ to, subject, html, servicioId }: EmailPayload) {
   const supabase = await createClient();
-  const transporter = getTransporter();
-  const from = process.env.SMTP_FROM || `"Ribera Logística" <correo@ribera.com>`;
+  const { config, transporter } = await getTransporter();
+
+  const from = config
+    ? (config.remitente_nombre?.trim()
+        ? `"${config.remitente_nombre.trim()}" <${config.remitente_email}>`
+        : config.remitente_email)
+    : (process.env.SMTP_FROM || `"Ribera Logística" <correo@ribera.com>`);
 
   let estado = 'Enviado';
   let errorLog: string | null = null;
 
   try {
-    // Intentar el envío SMTP
     await transporter.sendMail({
       from,
       to,
@@ -77,7 +152,6 @@ export async function enviarEmail({ to, subject, html, servicioId }: EmailPayloa
   }
 
   try {
-    // Registrar el envío del correo en Supabase
     const { error: dbError } = await supabase
       .from('servicios_correos')
       .insert({
@@ -95,8 +169,10 @@ export async function enviarEmail({ to, subject, html, servicioId }: EmailPayloa
     console.error("Error al guardar registro de correo en Supabase:", dbError);
   }
 
-  return { 
+  return {
     success: estado === 'Enviado',
-    error: errorLog
+    error: errorLog,
+    remitente: from,
+    servidor: config ? `${config.smtp_host}:${config.smtp_port}` : (process.env.SMTP_HOST || 'mock')
   };
 }

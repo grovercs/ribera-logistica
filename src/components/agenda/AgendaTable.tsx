@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileText } from 'lucide-react';
 import ServicioModal from '../servicios/ServicioModal';
 import { getServicioColorClass } from '@/lib/servicioColor';
 
@@ -30,16 +30,21 @@ interface AgendaTableProps {
   catalogos: Catalogos;
 }
 
+const estadoBadge = (nombre: string) => {
+  const map: Record<string, string> = {
+    'Pendiente': 'border-amber-200 bg-amber-50 text-amber-700',
+    'En curso': 'border-sky-200 bg-sky-50 text-sky-700',
+    'Terminado': 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    'Facturado/Cerrado': 'border-primary/20 bg-primary/10 text-primary',
+    'Aplazado': 'border-purple-200 bg-purple-50 text-purple-700',
+    'Anulado': 'border-slate-200 bg-slate-100 text-slate-500 line-through',
+  };
+  return map[nombre] || 'border-slate-200 bg-slate-50 text-slate-700';
+};
+
 export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTableProps) {
   const [selectedServicioId, setSelectedServicioId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Helper para determinar el color clásico de Delphi por fila
-  const getFilaColorClass = (s: any) => {
-    const color = getServicioColorClass(s);
-    const isAnulado = s.estados?.nombre === 'Anulado';
-    return `${color.bg} ${color.border} ${color.text} ${isAnulado ? 'line-through' : ''} hover:brightness-110 transition-colors`;
-  };
 
   const handleRowClick = (id: number) => {
     setSelectedServicioId(id);
@@ -47,121 +52,89 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
   };
 
   const formatFecha = (dateStr: string | null) => {
-    if (!dateStr) return '';
+    if (!dateStr) return '--';
     const [year, month, day] = dateStr.split('-');
     return `${day}/${month}/${year}`;
   };
 
-  const formatHora = (timeStr: string | null) => {
-    if (!timeStr) return '';
-    return timeStr.substring(0, 5);
-  };
-
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-      
-      {/* Tabla Responsiva */}
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-0 shadow-[0_1px_2px_rgba(15,23,42,0.06)] ring-1 ring-white/70 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse text-xs select-none">
-          <thead className="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
+        <table className="w-full text-left border-collapse text-sm">
+          <thead className="bg-slate-50 text-slate-500 font-semibold text-[11px] uppercase tracking-wider border-b border-slate-200">
             <tr>
-              <th className="px-4 py-3.5 w-24">Cód. Servicio</th>
-              <th className="px-4 py-3.5 w-20">Tienda</th>
-              <th className="px-4 py-3.5 w-24">Fecha Entrega</th>
-              <th className="px-4 py-3.5 w-20">Horario</th>
-              <th className="px-4 py-3.5">Cliente</th>
-              <th className="px-4 py-3.5">Dirección de Entrega</th>
-              <th className="px-4 py-3.5 w-32">Técnico Asignado</th>
-              <th className="px-4 py-3.5 w-28">Tipo Servicio</th>
-              <th className="px-4 py-3.5 w-24 text-right">Total</th>
-              <th className="px-4 py-3.5 w-16 text-center">Alertas</th>
+              <th className="px-4 py-3 w-32">Código</th>
+              <th className="px-4 py-3 w-32">Estado</th>
+              <th className="px-4 py-3">Cliente</th>
+              <th className="px-4 py-3 w-36">Tienda</th>
+              <th className="px-4 py-3 w-28">Fecha Entrega</th>
+              <th className="px-4 py-3 w-40">Tipo Servicio</th>
+              <th className="px-4 py-3 w-24 text-center">Alertas</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+          <tbody className="divide-y divide-slate-100">
             {servicios.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-slate-400 italic font-medium">
-                  -- No se encontraron órdenes de servicios en esta consulta --
+                <td colSpan={7} className="px-4 py-14 text-center text-slate-400 font-medium">
+                  No se encontraron servicios en este rango.
                 </td>
               </tr>
             ) : (
               servicios.map((s) => {
-                const filaStyle = getFilaColorClass(s);
+                const color = getServicioColorClass(s);
+                const estadoNombre = s.estados?.nombre || 'Pendiente';
+                const isAnulado = estadoNombre === 'Anulado';
                 return (
                   <tr
                     key={s.id}
                     onClick={() => handleRowClick(s.id)}
-                    className={`border-b transition-colors cursor-pointer ${filaStyle}`}
+                    className={`cursor-pointer transition hover:brightness-[1.02] ${color.bg} ${color.text} ${isAnulado ? 'line-through' : ''}`}
                   >
-                    {/* Código de Servicio */}
                     <td className="px-4 py-3 font-bold tracking-tight">
                       {s.codigo_servicio}
                     </td>
-                    
-                    {/* Tienda */}
+
                     <td className="px-4 py-3">
-                      {s.tiendas?.nombre || '--'}
+                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${estadoBadge(estadoNombre)}`}>
+                        {estadoNombre}
+                      </span>
                     </td>
-                    
-                    {/* Fecha Entrega */}
-                    <td className="px-4 py-3">
-                      {formatFecha(s.fecha_entrega)}
-                    </td>
-                    
-                    {/* Horario */}
-                    <td className="px-4 py-3 font-semibold">
-                      {formatHora(s.hora_entrega_ini)} - {formatHora(s.hora_entrega_fin)}
-                    </td>
-                    
-                    {/* Cliente */}
-                    <td className="px-4 py-3 truncate max-w-[150px]" title={s.nombre_cliente}>
+
+                    <td className="px-4 py-3 truncate max-w-[220px]" title={s.nombre_cliente}>
                       {s.nombre_cliente}
                     </td>
-                    
-                    {/* Dirección */}
-                    <td className="px-4 py-3 truncate max-w-[200px]" title={`${s.dest_direccion || ''} ${s.dest_num || ''} ${s.dest_poblacion || ''}`}>
-                      {s.dest_direccion ? `${s.dest_direccion} ${s.dest_num || ''}` : '-- Sin dirección --'}
-                      {s.dest_poblacion && ` (${s.dest_poblacion})`}
+
+                    <td className="px-4 py-3 truncate max-w-[120px]" title={s.tiendas?.nombre}>
+                      {s.tiendas?.nombre || '--'}
                     </td>
-                    
-                    {/* Técnico */}
-                    <td className="px-4 py-3 truncate max-w-[100px]" title={s.empleados?.nombre}>
-                      {s.empleados?.nombre || (
-                        <span className="italic font-normal text-[10px] opacity-70">Sin asignar</span>
-                      )}
+
+                    <td className="px-4 py-3 font-medium">
+                      {formatFecha(s.fecha_entrega)}
                     </td>
-                    
-                    {/* Tipo Servicio */}
+
                     <td className="px-4 py-3">
                       {s.tipos_servicios?.nombre || 'General'}
                     </td>
-                    
-                    {/* Total */}
-                    <td className="px-4 py-3 text-right font-black">
-                      {Number(s.total || 0).toFixed(2)} €
-                    </td>
-                    
-                    {/* Alertas */}
+
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         {s.incidencias && (
-                          <span title="Esta orden tiene incidencias activas" className="p-0.5 bg-red-100 text-red-600 rounded-full">
+                          <span title="Incidencias" className="p-1 bg-red-100 text-red-600 rounded-full">
                             <AlertTriangle size={12} className="animate-pulse" />
                           </span>
                         )}
-                        {(s.estados?.nombre === 'Terminado' || s.estados?.nombre === 'Facturado/Cerrado') && (
-                          <span title="Servicio finalizado" className="p-0.5 bg-emerald-100 text-emerald-600 rounded-full">
+                        {(estadoNombre === 'Terminado' || estadoNombre === 'Facturado/Cerrado') && (
+                          <span title="Finalizado" className="p-1 bg-emerald-100 text-emerald-600 rounded-full">
                             <CheckCircle2 size={12} />
                           </span>
                         )}
                         {s.dest_observaciones && (
-                          <span title="Notas adicionales en destino" className="p-0.5 bg-primary/10 text-primary rounded text-[9px] font-black px-1">
-                            N
+                          <span title="Notas" className="p-1 bg-slate-100 text-slate-500 rounded-full">
+                            <FileText size={12} />
                           </span>
                         )}
                       </div>
                     </td>
-
                   </tr>
                 );
               })
@@ -170,7 +143,6 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
         </table>
       </div>
 
-      {/* Modal de edición */}
       <ServicioModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -178,7 +150,6 @@ export default function AgendaTable({ servicios, onSaved, catalogos }: AgendaTab
         servicioId={selectedServicioId}
         catalogos={catalogos}
       />
-
     </div>
   );
 }

@@ -1,11 +1,18 @@
 import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import ServiciosAdminContainer from '@/components/servicios/ServiciosAdminContainer';
+import { ClipboardList } from 'lucide-react';
 
 export default async function ServiciosPage() {
   const supabase = await createClient();
 
-  // Cargar catálogos y listado de servicios en paralelo
+  // Calcular rango de carga: últimos 3 meses
+  const hoy = new Date();
+  const tresMesesAtras = new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1);
+  const finMesActual = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+  const globalStartStr = tresMesesAtras.toISOString().split('T')[0];
+  const globalEndStr = finMesActual.toISOString().split('T')[0];
+
   const [
     { data: tiendas },
     { data: empleados },
@@ -29,6 +36,8 @@ export default async function ServiciosPage() {
         tiendas(nombre),
         empleados(nombre)
       `)
+      .gte('fecha_entrega', globalStartStr)
+      .lte('fecha_entrega', globalEndStr)
       .order('codigo_servicio', { ascending: false })
   ]);
 
@@ -41,20 +50,29 @@ export default async function ServiciosPage() {
   };
 
   return (
-    <div className="space-y-6 font-sans max-w-7xl mx-auto">
-      
-      {/* Cabecera Sección */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Administración de Servicios</h1>
-        <p className="text-slate-500 text-sm">Panel general de gestión, creación y eliminación de órdenes de servicios.</p>
+    <div className="min-h-screen bg-slate-50 py-6 sm:py-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl bg-primary/10 p-2.5 text-primary">
+              <ClipboardList size={24} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Administración de Servicios</h1>
+              <p className="text-sm text-slate-500">Gestión, creación y seguimiento de órdenes de servicio.</p>
+            </div>
+          </div>
+        </div>
+
+        <ServiciosAdminContainer
+          initialServicios={servicios || []}
+          catalogos={catalogos}
+          initialGlobalStart={globalStartStr}
+          initialGlobalEnd={globalEndStr}
+        />
+
       </div>
-
-      {/* Contenedor CRUD */}
-      <ServiciosAdminContainer 
-        initialServicios={servicios || []} 
-        catalogos={catalogos} 
-      />
-
     </div>
   );
 }
