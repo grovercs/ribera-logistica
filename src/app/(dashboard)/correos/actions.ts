@@ -61,7 +61,7 @@ function escapeHtml(value: string | number | null | undefined): string {
  * la previsualización.
  */
 async function generarHtmlOrdenServicio(servicioId: number) {
-  const appUrl = getAppUrl();
+  const appUrl = await getAppUrl();
   const supabase = await createClient();
 
   // 1. Cargar datos del servicio y sus materiales
@@ -514,7 +514,7 @@ export async function enviarCorreoIncidencia(servicioId: number, emailDestinatar
   }
 
   try {
-    const appUrl = getAppUrl();
+    const appUrl = await getAppUrl();
 
     const { data: s, error: servError } = await supabase
       .from('servicios')
