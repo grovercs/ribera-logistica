@@ -13,8 +13,9 @@ export default async function LiquidacionesPage() {
     supabase
       .from('reportes')
       .select(`
-        id, orden_id, creador_id, horas_trabajadas, creado_en,
-        estado_liquidacion, fecha_pago, medio_pago, notas_pago,
+        id, orden_id, creador_id, trabajo_realizado, material_utilizado,
+        firma_url, fotos_urls, facturas_urls, fecha_trabajo, horas_trabajadas,
+        creado_en, estado_liquidacion, fecha_pago, medio_pago, notas_pago,
         servicios!inner(
           codigo_servicio,
           nombre_cliente,

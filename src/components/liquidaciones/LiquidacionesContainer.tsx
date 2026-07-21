@@ -9,6 +9,12 @@ interface Reporte {
   id: string;
   orden_id: number;
   creador_id: string;
+  trabajo_realizado: string | null;
+  material_utilizado: string | null;
+  firma_url: string | null;
+  fotos_urls: string[] | null;
+  facturas_urls: string[] | null;
+  fecha_trabajo: string | null;
   horas_trabajadas: number;
   creado_en: string;
   estado_liquidacion: string;
@@ -82,8 +88,9 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
       supabase
         .from('reportes')
         .select(`
-          id, orden_id, creador_id, horas_trabajadas, creado_en,
-          estado_liquidacion, fecha_pago, medio_pago, notas_pago,
+          id, orden_id, creador_id, trabajo_realizado, material_utilizado,
+          firma_url, fotos_urls, facturas_urls, fecha_trabajo, horas_trabajadas,
+          creado_en, estado_liquidacion, fecha_pago, medio_pago, notas_pago,
           servicios!inner(
             codigo_servicio,
             nombre_cliente,
@@ -768,6 +775,63 @@ export default function LiquidacionesContainer({ initialReportes, empleados }: L
                   <span className="text-slate-500">{selectedServicioDetalle.horas_trabajadas.toFixed(1)}h · {Number(selectedServicioDetalle.horas_trabajadas * selectedServicioDetalle.tarifa_hora).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</span>
                 </div>
               </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <FileText size={12} />
+                  Trabajo Realizado
+                </p>
+                {selectedServicioDetalle.trabajo_realizado ? (
+                  <p className="text-xs text-slate-700 whitespace-pre-wrap bg-slate-50 border border-slate-200 rounded-xl p-3">{selectedServicioDetalle.trabajo_realizado}</p>
+                ) : (
+                  <p className="text-xs text-slate-400 italic bg-slate-50 border border-slate-200 rounded-xl p-3">Sin descripción del trabajo realizado</p>
+                )}
+              </div>
+
+              {selectedServicioDetalle.material_utilizado && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <FileText size={12} />
+                    Material / Gastos
+                  </p>
+                  <p className="text-xs text-slate-700 whitespace-pre-wrap bg-slate-50 border border-slate-200 rounded-xl p-3">{selectedServicioDetalle.material_utilizado}</p>
+                </div>
+              )}
+
+              {selectedServicioDetalle.fotos_urls && selectedServicioDetalle.fotos_urls.length > 0 && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Fotos del Trabajo ({selectedServicioDetalle.fotos_urls.length})</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {selectedServicioDetalle.fotos_urls.map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-square rounded-xl overflow-hidden border border-slate-200 bg-white">
+                        <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedServicioDetalle.facturas_urls && selectedServicioDetalle.facturas_urls.length > 0 && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Facturas / Recibos ({selectedServicioDetalle.facturas_urls.length})</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {selectedServicioDetalle.facturas_urls.map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-square rounded-xl overflow-hidden border border-amber-200 bg-white">
+                        <img src={url} alt={`Factura ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedServicioDetalle.firma_url && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Firma del Cliente</p>
+                  <div className="bg-white rounded-xl p-4 border border-slate-200 flex justify-center">
+                    <img src={selectedServicioDetalle.firma_url} alt="Firma del cliente" className="max-h-32 object-contain" />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
