@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { enviarEmail } from '@/lib/mail/mailer';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Detecta la URL pública de la aplicación.
@@ -21,6 +23,22 @@ async function getAppUrl(): Promise<string> {
     return `${proto}://${host}`;
   } catch {
     return 'http://localhost:3000';
+  }
+}
+
+/**
+ * Lee el logo corporativo y lo devuelve como data URI en base64.
+ * Si no se puede leer, devuelve null para que se use la URL pública.
+ */
+function getLogoBase64(): string | null {
+  try {
+    const logoPath = path.join(process.cwd(), 'public', 'logo-ribera.png');
+    if (!fs.existsSync(logoPath)) return null;
+    const buffer = fs.readFileSync(logoPath);
+    return `data:image/png;base64,${buffer.toString('base64')}`;
+  } catch (err) {
+    console.warn('No se pudo leer el logo corporativo para el email:', err);
+    return null;
   }
 }
 
@@ -117,8 +135,8 @@ async function generarHtmlOrdenServicio(servicioId: number) {
       }).join('')
     : `<tr><td colspan="5" style="padding: 14px; text-align: center; font-size: 12px; color: #94a3b8; font-style: italic;">No se han registrado materiales en esta orden.</td></tr>`;
 
-  // Logo corporativo: intenta usar la URL pública del logo; si no hay, solo texto.
-  const logoUrl = `${appUrl}/logo-ribera.png`;
+  // Logo corporativo embebido en base64 para que funcione offline y en emails.
+  const logoSrc = getLogoBase64() || `${appUrl}/logo-ribera.png`;
 
   // 3. Crear cuerpo HTML con cabecera y pie BigMat Ribera
   const htmlBody = `
@@ -301,7 +319,7 @@ async function generarHtmlOrdenServicio(servicioId: number) {
     <body>
       <div class="container">
         <div class="header">
-          <img src="${logoUrl}" alt="BigMat Ribera" class="logo-img" />
+          <img src="${logoSrc}" alt="BigMat Ribera" class="logo-img" />
           <div class="subbrand">Logística y Servicios de Entrega</div>
           <div class="doc-type">Orden de Servicio · ${codigoServicio}</div>
         </div>
