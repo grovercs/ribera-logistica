@@ -117,6 +117,9 @@ async function generarHtmlOrdenServicio(servicioId: number) {
       }).join('')
     : `<tr><td colspan="5" style="padding: 14px; text-align: center; font-size: 12px; color: #94a3b8; font-style: italic;">No se han registrado materiales en esta orden.</td></tr>`;
 
+  // Logo corporativo: intenta usar la URL pública del logo; si no hay, solo texto.
+  const logoUrl = `${appUrl}/logo-ribera.png`;
+
   // 3. Crear cuerpo HTML con cabecera y pie BigMat Ribera
   const htmlBody = `
     <!DOCTYPE html>
@@ -145,6 +148,14 @@ async function generarHtmlOrdenServicio(servicioId: number) {
           color: #ffffff;
           padding: 24px 30px;
           text-align: left;
+        }
+        .header .logo-img {
+          max-width: 220px;
+          max-height: 56px;
+          width: auto;
+          height: auto;
+          display: block;
+          margin-bottom: 10px;
         }
         .header .brand {
           font-size: 28px;
@@ -290,7 +301,7 @@ async function generarHtmlOrdenServicio(servicioId: number) {
     <body>
       <div class="container">
         <div class="header">
-          <div class="brand">BigMat<span> Ribera</span></div>
+          <img src="${logoUrl}" alt="BigMat Ribera" class="logo-img" />
           <div class="subbrand">Logística y Servicios de Entrega</div>
           <div class="doc-type">Orden de Servicio · ${codigoServicio}</div>
         </div>
