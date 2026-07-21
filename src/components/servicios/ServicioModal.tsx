@@ -1518,7 +1518,6 @@ export default function ServicioModal({
                       srcDoc={emailPreviewHtml}
                       title="Vista previa del correo"
                       className="w-full h-[380px] rounded-xl border border-slate-200 bg-white"
-                      sandbox="allow-same-origin"
                     />
                   </div>
 
