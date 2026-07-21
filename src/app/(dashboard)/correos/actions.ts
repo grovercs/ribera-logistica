@@ -167,13 +167,19 @@ async function generarHtmlOrdenServicio(servicioId: number) {
           padding: 24px 30px;
           text-align: left;
         }
+        .header .logo-box {
+          display: inline-block;
+          background-color: #ffffff;
+          padding: 10px 16px;
+          border-radius: 10px;
+          margin-bottom: 14px;
+        }
         .header .logo-img {
-          max-width: 220px;
-          max-height: 56px;
+          max-width: 200px;
+          max-height: 50px;
           width: auto;
           height: auto;
           display: block;
-          margin-bottom: 10px;
         }
         .header .brand {
           font-size: 28px;
@@ -319,7 +325,9 @@ async function generarHtmlOrdenServicio(servicioId: number) {
     <body>
       <div class="container">
         <div class="header">
-          <img src="${logoSrc}" alt="BigMat Ribera" class="logo-img" />
+          <div class="logo-box">
+            <img src="${logoSrc}" alt="BigMat Ribera" class="logo-img" />
+          </div>
           <div class="subbrand">Logística y Servicios de Entrega</div>
           <div class="doc-type">Orden de Servicio · ${codigoServicio}</div>
         </div>
