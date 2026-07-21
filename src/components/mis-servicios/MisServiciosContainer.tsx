@@ -1,21 +1,33 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Calendar, Euro, FileText, CheckCircle2, AlertCircle, Search, Landmark, Wallet } from 'lucide-react';
+import { Calendar, Euro, FileText, CheckCircle2, AlertCircle, Search, Landmark, Wallet, XCircle, Camera } from 'lucide-react';
 
 interface Reporte {
   id: string;
   orden_id: number;
   creado_en: string;
+  fecha_trabajo: string | null;
   horas_trabajadas: number;
   estado_liquidacion: string;
+  trabajo_realizado: string | null;
+  material_utilizado: string | null;
+  firma_url: string | null;
+  fotos_urls: string[] | null;
+  facturas_urls: string[] | null;
   fecha_pago: string | null;
   medio_pago: string | null;
   notas_pago: string | null;
   servicios: {
     codigo_servicio: string;
     nombre_cliente: string;
+    dest_direccion: string | null;
     dest_poblacion: string | null;
+    dest_observaciones: string | null;
+    num_documento: string | null;
+    tipos_servicios: {
+      nombre: string;
+    } | null;
   };
   tarifa_hora: number;
   total_importe: number;
@@ -42,6 +54,7 @@ export default function MisServiciosContainer({ reportes, empleado }: MisServici
   const [hasta, setHasta] = useState('');
   const [estadoFilter, setEstadoFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedReporte, setSelectedReporte] = useState<Reporte | null>(null);
 
   // Filtrado de reportes
   const filteredReportes = useMemo(() => {
@@ -258,7 +271,12 @@ export default function MisServiciosContainer({ reportes, empleado }: MisServici
                 </tr>
               ) : (
                 filteredReportes.map((rep) => (
-                  <tr key={rep.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr
+                    key={rep.id}
+                    className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+                    onClick={() => setSelectedReporte(rep)}
+                    title="Ver detalle del trabajo"
+                  >
                     <td className="px-5 py-3.5 font-mono font-bold text-slate-900">{rep.servicios?.codigo_servicio}</td>
                     <td className="px-5 py-3.5 text-slate-800 font-bold">{rep.servicios?.nombre_cliente}</td>
                     <td className="px-5 py-3.5 text-slate-500">{rep.servicios?.dest_poblacion || 'No especificada'}</td>
@@ -294,6 +312,135 @@ export default function MisServiciosContainer({ reportes, empleado }: MisServici
           </table>
         </div>
       </div>
+
+      {/* MODAL DETALLE DEL TRABAJO REALIZADO */}
+      {selectedReporte && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+            <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText size={16} className="text-primary/70" />
+                <h3 className="text-sm font-bold">Detalle del Trabajo Realizado</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedReporte(null)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs space-y-1.5">
+                <p className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Servicio / Cliente</p>
+                <p className="text-slate-900 font-bold text-sm">{selectedReporte.servicios?.codigo_servicio} — {selectedReporte.servicios?.nombre_cliente}</p>
+                <p className="text-slate-600">{selectedReporte.servicios?.dest_direccion || 'Sin dirección registrada'}</p>
+                <p className="text-slate-500">{selectedReporte.servicios?.dest_poblacion || 'Sin población registrada'}</p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <span className="bg-primary/10 text-primary-dark text-[10px] font-black px-2 py-0.5 rounded uppercase">
+                    {selectedReporte.servicios?.tipos_servicios?.nombre || 'General'}
+                  </span>
+                  {selectedReporte.servicios?.num_documento && (
+                    <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded">
+                      Ref. {selectedReporte.servicios.num_documento}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Trabajo a realizar / Notas del Pedido</p>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  {selectedReporte.servicios?.dest_observaciones ? (
+                    <p className="text-xs text-slate-700 whitespace-pre-wrap">{selectedReporte.servicios.dest_observaciones}</p>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">Sin notas registradas</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <FileText size={12} />
+                  Trabajo Realizado
+                </p>
+                {selectedReporte.trabajo_realizado ? (
+                  <p className="text-xs text-slate-700 whitespace-pre-wrap bg-slate-50 border border-slate-200 rounded-xl p-3">{selectedReporte.trabajo_realizado}</p>
+                ) : (
+                  <p className="text-xs text-slate-400 italic bg-slate-50 border border-slate-200 rounded-xl p-3">Sin descripción del trabajo realizado</p>
+                )}
+              </div>
+
+              {selectedReporte.material_utilizado && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <FileText size={12} />
+                    Material / Gastos
+                  </p>
+                  <p className="text-xs text-slate-700 whitespace-pre-wrap bg-slate-50 border border-slate-200 rounded-xl p-3">{selectedReporte.material_utilizado}</p>
+                </div>
+              )}
+
+              {selectedReporte.fotos_urls && selectedReporte.fotos_urls.length > 0 && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <Camera size={12} />
+                    Fotos del Trabajo ({selectedReporte.fotos_urls.length})
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {selectedReporte.fotos_urls.map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-square rounded-xl overflow-hidden border border-slate-200 bg-white">
+                        <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedReporte.facturas_urls && selectedReporte.facturas_urls.length > 0 && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Facturas / Recibos ({selectedReporte.facturas_urls.length})</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {selectedReporte.facturas_urls.map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-square rounded-xl overflow-hidden border border-amber-200 bg-white">
+                        <img src={url} alt={`Factura ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedReporte.firma_url && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Firma del Cliente</p>
+                  <div className="bg-white rounded-xl p-4 border border-slate-200 flex justify-center">
+                    <img src={selectedReporte.firma_url} alt="Firma del cliente" className="max-h-32 object-contain" />
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Resumen Económico</p>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-700">{selectedReporte.horas_trabajadas.toFixed(1)}h × {selectedReporte.tarifa_hora.toFixed(2)}€/h</span>
+                  <span className="font-mono font-bold text-slate-900">{selectedReporte.total_importe.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <span className="text-slate-500">Estado del cobro</span>
+                  <span className={`font-black text-[10px] px-2 py-0.5 rounded uppercase ${selectedReporte.estado_liquidacion === 'Pagado' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+                    {selectedReporte.estado_liquidacion === 'Pagado' ? `Pagado ${selectedReporte.medio_pago || ''}` : 'Pendiente de pago'}
+                  </span>
+                </div>
+                {selectedReporte.fecha_pago && (
+                  <p className="text-[10px] text-slate-500 mt-1">Fecha de pago: {new Date(selectedReporte.fecha_pago).toLocaleDateString('es-ES')}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

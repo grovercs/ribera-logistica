@@ -35,7 +35,12 @@ export default async function MisServiciosPage() {
   // Cargar todos los reportes de este operario
   const { data: reportes } = await supabase
     .from('reportes')
-    .select('id, orden_id, creado_en, horas_trabajadas, estado_liquidacion, fecha_pago, medio_pago, notas_pago, servicios!inner(codigo_servicio, nombre_cliente, dest_poblacion)')
+    .select(`
+      id, orden_id, creado_en, fecha_trabajo, horas_trabajadas, estado_liquidacion,
+      trabajo_realizado, material_utilizado, firma_url, fotos_urls, facturas_urls,
+      fecha_pago, medio_pago, notas_pago,
+      servicios!inner(codigo_servicio, nombre_cliente, dest_direccion, dest_poblacion, dest_observaciones, num_documento, tipos_servicios(nombre))
+    `)
     .eq('creador_id', user.id)
     .order('creado_en', { ascending: false });
 
