@@ -176,13 +176,21 @@ const MobileDetalleOrden = () => {
             const pendienteId = estadosMap.get('Pendiente');
             const enCursoId = estadosMap.get('En curso');
             if (pendienteId && enCursoId && item.estado_id === pendienteId) {
-                const { error: updateError } = await supabase
+                const { error: updateError, count, status } = await supabase
                     .from('servicios')
-                    .update({ estado_id: enCursoId })
+                    .update({ estado_id: enCursoId }, { count: 'exact' })
                     .eq('id', id);
+
+                console.log('Auto-marcar En curso:', { pendienteId, enCursoId, estadoActual: item.estado_id, count, status });
+
                 if (updateError) {
                     console.error('Error updating servicio to En curso:', updateError);
                     setCustomError('No se pudo marcar el servicio como "En curso": ' + updateError.message);
+                } else if (count === 0) {
+                    console.warn('Auto-marcar En curso: 0 filas actualizadas. Posible problema RLS o empleado_id no coincide.');
+                    setCustomError(
+                        'No se pudo actualizar el estado del servicio. Verifica que este servicio esté asignado a tu usuario en el backend (empleado_id).'
+                    );
                 } else {
                     // Actualizar el estado local para que el resto del formulario lo vea
                     setOrden((prev: any) => prev ? { ...prev, estado_id: enCursoId } : prev);
@@ -545,10 +553,12 @@ const MobileDetalleOrden = () => {
                 return;
             }
 
-            const { error: errorServicio } = await supabase
+            const { error: errorServicio, count, status } = await supabase
                 .from('servicios')
-                .update({ estado_id: newEstadoId })
+                .update({ estado_id: newEstadoId }, { count: 'exact' })
                 .eq('id', id);
+
+            console.log('Finalizar servicio:', { newEstadoId, count, status });
 
             if (errorServicio) {
                 console.error("Error updating orden status:", errorServicio);
@@ -556,6 +566,16 @@ const MobileDetalleOrden = () => {
                     "El parte se ha guardado, pero no se pudo actualizar el estado del servicio: " +
                     errorServicio.message +
                     ". Pulse 'Guardar cambios' de nuevo para reintentar."
+                );
+                setSubmitting(false);
+                return;
+            }
+
+            if (count === 0) {
+                console.warn('Finalizar servicio: 0 filas actualizadas. Posible problema RLS o empleado_id no coincide.');
+                setCustomError(
+                    "El parte se ha guardado, pero no se pudo cambiar el estado del servicio (0 filas afectadas). " +
+                    "Comprueba en el backend que este servicio esté asignado a tu empleado vinculado."
                 );
                 setSubmitting(false);
                 return;
